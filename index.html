@@ -2,8 +2,8 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cronómetro Profesional</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Cronómetro</title>
 
 <style>
 body {
@@ -11,44 +11,54 @@ body {
     font-family: 'Segoe UI', sans-serif;
     background: #0f172a;
     color: white;
-    height: 100vh;
+    min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
+/* CONTENEDOR */
 .container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 22px;
+    gap: 20px;
+    width: 100%;
+    max-width: 900px;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
+/* RECTÁNGULO RESPONSIVE */
 .timer-box {
-    width: 520px;
-    height: 160px;
+    width: min(90vw, 600px);
+    height: clamp(120px, 20vw, 200px);
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 90px;
+    font-size: clamp(60px, 10vw, 140px);
     font-weight: 600;
-    border-radius: 18px;
+    border-radius: 20px;
     background: #3f3f46;
     letter-spacing: 6px;
     transition: background 0.4s ease, all 0.3s ease;
+    text-align: center;
 }
 
+/* CONTROLES */
 .controls {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
+    justify-content: center;
 }
 
 button, input {
     background: #1e293b;
     border: none;
     color: white;
-    padding: 8px 14px;
-    border-radius: 8px;
+    padding: 10px 16px;
+    border-radius: 10px;
     font-size: 14px;
 }
 
@@ -61,13 +71,13 @@ button:hover {
     background: #334155;
 }
 
+/* CONFIGURACIÓN */
 .settings {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 14px;
     align-items: center;
-    font-size: 14px;
-    margin-top: 10px;
+    width: 100%;
 }
 
 .limit-control {
@@ -79,42 +89,44 @@ button:hover {
 .color-controls {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    max-width: 320px;
 }
 
 .color-item {
     display: flex;
     justify-content: space-between;
-    width: 260px;
     align-items: center;
 }
 
 input[type="color"] {
-    width: 32px;
-    height: 28px;
+    width: 36px;
+    height: 30px;
     border: none;
     padding: 0;
     background: none;
     cursor: pointer;
 }
 
+/* FULLSCREEN */
 .hidden {
     display: none;
 }
 
 #exitFullscreenBtn {
     position: fixed;
-    top: 12px;
-    left: 12px;
+    top: 15px;
+    left: 15px;
     background: none;
     border: none;
     color: white;
-    font-size: 22px;
-    opacity: 0.4;
+    font-size: 24px;
+    opacity: 0.35;
     cursor: pointer;
     display: none;
     transition: 0.2s ease;
+    z-index: 999;
 }
 
 #exitFullscreenBtn:hover {
@@ -231,31 +243,42 @@ function resetTimer() {
 }
 
 function toggleFullscreen() {
+    const docElm = document.documentElement;
     if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen();
+        if (docElm.requestFullscreen) docElm.requestFullscreen();
+        else if (docElm.webkitRequestFullscreen) docElm.webkitRequestFullscreen();
+        else if (docElm.msRequestFullscreen) docElm.msRequestFullscreen();
+
         mainContent.querySelectorAll(".controls, .settings").forEach(e => e.classList.add("hidden"));
         timerBox.style.width = "100vw";
         timerBox.style.height = "100vh";
         timerBox.style.borderRadius = "0";
-        timerBox.style.fontSize = "200px";
+        timerBox.style.fontSize = "clamp(80px, 20vw, 240px)";
         exitBtn.style.display = "block";
+        document.body.style.overflow = "hidden";
     }
 }
 
 function exitFullscreen() {
-    document.exitFullscreen();
+    if (document.exitFullscreen) document.exitFullscreen();
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    else if (document.msExitFullscreen) document.msExitFullscreen();
 }
 
-document.addEventListener("fullscreenchange", () => {
+document.addEventListener("fullscreenchange", restoreLayout);
+document.addEventListener("webkitfullscreenchange", restoreLayout);
+
+function restoreLayout() {
     if (!document.fullscreenElement) {
         mainContent.querySelectorAll(".controls, .settings").forEach(e => e.classList.remove("hidden"));
-        timerBox.style.width = "520px";
-        timerBox.style.height = "160px";
-        timerBox.style.borderRadius = "18px";
-        timerBox.style.fontSize = "90px";
+        timerBox.style.width = "min(90vw, 600px)";
+        timerBox.style.height = "clamp(120px, 20vw, 200px)";
+        timerBox.style.borderRadius = "20px";
+        timerBox.style.fontSize = "clamp(60px, 10vw, 140px)";
         exitBtn.style.display = "none";
+        document.body.style.overflow = "auto";
     }
-});
+}
 
 updateDisplay();
 </script>
