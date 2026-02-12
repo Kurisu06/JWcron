@@ -27,7 +27,7 @@ html, body {
     box-sizing: border-box;
 }
 
-/* RECTÁNGULO */
+/* RECTÁNGULO DEL CRONÓMETRO */
 .timer-box {
     width: min(90vw, 600px);
     height: clamp(120px, 20vw, 200px);
@@ -176,6 +176,7 @@ input[type="color"] {
     <div class="controls">
         <button id="startPauseBtn">Inicio</button>
         <button onclick="resetTimer()">Reiniciar</button>
+        <button onclick="stopTimer()">Stop</button>
         <button onclick="toggleFullscreen()">Pantalla completa</button>
     </div>
 
@@ -289,6 +290,15 @@ startPauseBtn.addEventListener("click", () => {
 });
 
 function resetTimer() {
+    running = false;
+    clearInterval(interval);
+    seconds = 0;
+    startPauseBtn.textContent = "Inicio";
+    updateDisplay();
+}
+
+/* STOP */
+function stopTimer() {
     running = false;
     clearInterval(interval);
     seconds = 0;
