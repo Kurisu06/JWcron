@@ -6,122 +6,152 @@
 <title>Cronómetro de Discursos</title>
 
 <style>
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    background-color: #222;
-    color: white;
-}
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background-color: #111;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        color: white;
+        flex-direction: column;
+    }
 
-.container {
-    text-align: center;
-}
+    .container {
+        text-align: center;
+    }
 
-.timer {
-    font-size: 8vw;
-    font-weight: bold;
-    padding: 40px;
-    border-radius: 20px;
-    background-color: gray;
-    width: 60vw;
-    height: 60vw;
-    max-width: 400px;
-    max-height: 400px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin: auto;
-}
+    .timer {
+        width: 320px;
+        height: 140px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 60px;
+        font-weight: bold;
+        border-radius: 20px;
+        margin-bottom: 20px;
+        transition: background-color 0.5s ease;
+        background-color: gray;
+    }
 
-.controls {
-    margin-top: 20px;
-}
+    .controls, .settings {
+        margin: 10px 0;
+    }
 
-button, input {
-    padding: 10px;
-    margin: 5px;
-    font-size: 16px;
-}
+    input, button {
+        padding: 8px;
+        margin: 5px;
+        font-size: 16px;
+        border-radius: 8px;
+        border: none;
+    }
+
+    button {
+        cursor: pointer;
+    }
+
+    .hidden {
+        display: none;
+    }
 </style>
 </head>
-
 <body>
 
-<div class="container">
-    <div id="timer" class="timer">00:00</div>
+<div class="container" id="mainContainer">
 
-    <div class="controls" id="controls">
-        <input type="number" id="limitInput" placeholder="Tiempo límite (segundos)">
-        <br>
-        <button onclick="start()">Iniciar</button>
-        <button onclick="stop()">Detener</button>
-        <button onclick="reset()">Reiniciar</button>
-        <button onclick="toggleFullscreen()">Pantalla Completa</button>
+    <div class="timer" id="timer">00:00</div>
+
+    <div class="controls">
+        <button onclick="startTimer()">Iniciar</button>
+        <button onclick="pauseTimer()">Pausar</button>
+        <button onclick="resetTimer()">Reiniciar</button>
+        <button onclick="toggleFullScreen()">Pantalla Completa</button>
     </div>
+
+    <div class="settings">
+        <label>Tiempo límite (minutos): </label>
+        <input type="number" id="limitInput" min="1" value="5">
+    </div>
+
+    <div class="settings">
+        <label>Color en pausa: </label><input type="color" id="pauseColor" value="#808080">
+        <label>Color en marcha: </label><input type="color" id="runColor" value="#28a745">
+        <label>Color cerca del límite: </label><input type="color" id="warningColor" value="#ffc107">
+        <label>Color excedido: </label><input type="color" id="overColor" value="#dc3545">
+    </div>
+
 </div>
 
 <script>
+let timer;
 let seconds = 0;
-let interval = null;
-let limit = 0;
+let running = false;
 
-function formatTime(sec) {
-    let min = Math.floor(sec / 60);
-    let s = sec % 60;
-    return `${min.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-}
+const timerDisplay = document.getElementById("timer");
 
 function updateDisplay() {
-    const timer = document.getElementById("timer");
-    timer.textContent = formatTime(seconds);
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    timerDisplay.textContent =
+        String(mins).padStart(2, '0') + ":" +
+        String(secs).padStart(2, '0');
 
-    if (interval === null) {
-        timer.style.backgroundColor = "gray";
-    } else if (limit > 0 && seconds >= limit) {
-        timer.style.backgroundColor = "red";
-    } else if (limit > 0 && seconds >= limit - 10) {
-        timer.style.backgroundColor = "orange";
+    updateColor();
+}
+
+function updateColor() {
+    const limit = document.getElementById("limitInput").value * 60;
+    const pauseColor = document.getElementById("pauseColor").value;
+    const runColor = document.getElementById("runColor").value;
+    const warningColor = document.getElementById("warningColor").value;
+    const overColor = document.getElementById("overColor").value;
+
+    if (!running) {
+        timerDisplay.style.backgroundColor = pauseColor;
+    } else if (seconds >= limit) {
+        timerDisplay.style.backgroundColor = overColor;
+    } else if (seconds >= limit - 30) {
+        timerDisplay.style.backgroundColor = warningColor;
     } else {
-        timer.style.backgroundColor = "green";
+        timerDisplay.style.backgroundColor = runColor;
     }
 }
 
-function start() {
-    if (interval !== null) return;
-
-    limit = parseInt(document.getElementById("limitInput").value) || 0;
-
-    interval = setInterval(() => {
-        seconds++;
-        updateDisplay();
-    }, 1000);
+function startTimer() {
+    if (!running) {
+        running = true;
+        timer = setInterval(() => {
+            seconds++;
+            updateDisplay();
+        }, 1000);
+    }
 }
 
-function stop() {
-    clearInterval(interval);
-    interval = null;
-    updateDisplay();
+function pauseTimer() {
+    running = false;
+    clearInterval(timer);
+    updateColor();
 }
 
-function reset() {
-    stop();
+function resetTimer() {
+    running = false;
+    clearInterval(timer);
     seconds = 0;
     updateDisplay();
 }
 
-function toggleFullscreen() {
+function toggleFullScreen() {
     const elem = document.documentElement;
-
     if (!document.fullscreenElement) {
         elem.requestFullscreen();
-        document.getElementById("controls").style.display = "none";
+        document.querySelector(".controls").classList.add("hidden");
+        document.querySelectorAll(".settings").forEach(e => e.classList.add("hidden"));
     } else {
         document.exitFullscreen();
-        document.getElementById("controls").style.display = "block";
+        document.querySelector(".controls").classList.remove("hidden");
+        document.querySelectorAll(".settings").forEach(e => e.classList.remove("hidden"));
     }
 }
 
@@ -130,26 +160,5 @@ updateDisplay();
 
 </body>
 </html>
-<br>
-<label>Color Normal:</label>
-<input type="color" id="colorNormal" value="#00ff00">
 
-<label>Color Alerta:</label>
-<input type="color" id="colorWarning" value="#ffa500">
 
-<label>Color Excedido:</label>
-<input type="color" id="colorOver" value="#ff0000">
-const normalColor = document.getElementById("colorNormal").value;
-const warningColor = document.getElementById("colorWarning").value;
-const overColor = document.getElementById("colorOver").value;
-
-if (interval === null) {
-    timer.style.backgroundColor = "gray";
-} else if (limit > 0 && seconds >= limit) {
-    timer.style.backgroundColor = overColor;
-} else if (limit > 0 && seconds >= limit - 10) {
-    timer.style.backgroundColor = warningColor;
-} else {
-    timer.style.backgroundColor = normalColor;
-}
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
