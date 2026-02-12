@@ -106,13 +106,7 @@ button:hover {
     opacity: 0.9;
 }
 
-/* INPUT COLOR Y CUADRITO */
-.color-picker-container {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
+/* INPUT COLOR */
 input[type="color"] {
     width: 42px;
     height: 32px;
@@ -120,14 +114,6 @@ input[type="color"] {
     border-radius: 6px;
     padding: 0;
     cursor: pointer;
-}
-
-/* CUADRITO COLOR SELECCIONADO */
-.color-display {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
-    border: 1px solid #fff3;
 }
 
 /* FULLSCREEN */
@@ -198,34 +184,22 @@ input[type="color"] {
 
             <div class="color-item">
                 <span>Color en pausa</span>
-                <div class="color-picker-container">
-                    <input type="color" id="pauseColor" value="#3f3f46">
-                    <div class="color-display" id="pauseDisplay"></div>
-                </div>
+                <input type="color" id="pauseColor" value="#3f3f46">
             </div>
 
             <div class="color-item">
                 <span>Color en movimiento</span>
-                <div class="color-picker-container">
-                    <input type="color" id="runColor" value="#16a34a">
-                    <div class="color-display" id="runDisplay"></div>
-                </div>
+                <input type="color" id="runColor" value="#16a34a">
             </div>
 
             <div class="color-item">
                 <span>Color advertencia</span>
-                <div class="color-picker-container">
-                    <input type="color" id="warningColor" value="#f59e0b">
-                    <div class="color-display" id="warningDisplay"></div>
-                </div>
+                <input type="color" id="warningColor" value="#f59e0b">
             </div>
 
             <div class="color-item">
                 <span>Tiempo excedido</span>
-                <div class="color-picker-container">
-                    <input type="color" id="overColor" value="#dc2626">
-                    <div class="color-display" id="overDisplay"></div>
-                </div>
+                <input type="color" id="overColor" value="#dc2626">
             </div>
 
         </div>
@@ -244,25 +218,6 @@ const timerBox = document.getElementById("timer");
 const mainContent = document.getElementById("mainContent");
 const exitBtn = document.getElementById("exitFullscreenBtn");
 const startPauseBtn = document.getElementById("startPauseBtn");
-
-/* COLOR DISPLAY */
-const pauseDisplay = document.getElementById("pauseDisplay");
-const runDisplay = document.getElementById("runDisplay");
-const warningDisplay = document.getElementById("warningDisplay");
-const overDisplay = document.getElementById("overDisplay");
-
-function updateColorDisplays() {
-    pauseDisplay.style.background = document.getElementById("pauseColor").value;
-    runDisplay.style.background = document.getElementById("runColor").value;
-    warningDisplay.style.background = document.getElementById("warningColor").value;
-    overDisplay.style.background = document.getElementById("overColor").value;
-}
-
-document.querySelectorAll('input[type="color"]').forEach(input=>{
-    input.addEventListener('input', updateColorDisplays);
-});
-
-updateColorDisplays();
 
 /* FORMATEAR TIEMPO */
 function formatTime() {
@@ -293,7 +248,7 @@ function updateDisplay() {
     updateColor();
 }
 
-/* START / PAUSE TOGGLE */
+/* START / PAUSA TOGGLE */
 startPauseBtn.addEventListener("click", () => {
     if (!running) {
         running = true;
