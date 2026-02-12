@@ -84,7 +84,7 @@ button:hover {
     gap: 10px;
 }
 
-/* CONTROLES DE COLOR MEJORADOS */
+/* CONTROLES DE COLOR */
 .color-controls {
     display: flex;
     flex-direction: column;
@@ -106,15 +106,21 @@ button:hover {
     opacity: 0.9;
 }
 
-/* Color picker limpio y grande */
 input[type="color"] {
     width: 42px;
     height: 32px;
     border: none;
     border-radius: 6px;
     padding: 0;
-    background: none;
     cursor: pointer;
+}
+
+/* MOSTRAR COLOR SELECCIONADO */
+.color-display {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid #fff3;
 }
 
 /* FULLSCREEN */
@@ -168,9 +174,9 @@ input[type="color"] {
     <div class="timer-box" id="timer">00:00</div>
 
     <div class="controls">
-        <button id="startPauseBtn">▶</button>
-        <button onclick="resetTimer()">⟲</button>
-        <button onclick="toggleFullscreen()">⛶</button>
+        <button id="startPauseBtn">Inicio</button>
+        <button onclick="resetTimer()">Reiniciar</button>
+        <button onclick="toggleFullscreen()">Pantalla completa</button>
     </div>
 
     <div class="settings">
@@ -184,21 +190,22 @@ input[type="color"] {
             <div class="color-item">
                 <span>Color en pausa</span>
                 <input type="color" id="pauseColor" value="#3f3f46">
+                <div class="color-display" id="pauseDisplay"></div>
             </div>
-
             <div class="color-item">
                 <span>Color en movimiento</span>
                 <input type="color" id="runColor" value="#16a34a">
+                <div class="color-display" id="runDisplay"></div>
             </div>
-
             <div class="color-item">
                 <span>Color advertencia</span>
                 <input type="color" id="warningColor" value="#f59e0b">
+                <div class="color-display" id="warningDisplay"></div>
             </div>
-
             <div class="color-item">
                 <span>Tiempo excedido</span>
                 <input type="color" id="overColor" value="#dc2626">
+                <div class="color-display" id="overDisplay"></div>
             </div>
         </div>
 
@@ -217,6 +224,26 @@ const mainContent = document.getElementById("mainContent");
 const exitBtn = document.getElementById("exitFullscreenBtn");
 const startPauseBtn = document.getElementById("startPauseBtn");
 
+/* COLOR DISPLAY */
+const pauseDisplay = document.getElementById("pauseDisplay");
+const runDisplay = document.getElementById("runDisplay");
+const warningDisplay = document.getElementById("warningDisplay");
+const overDisplay = document.getElementById("overDisplay");
+
+function updateColorDisplays() {
+    pauseDisplay.style.background = document.getElementById("pauseColor").value;
+    runDisplay.style.background = document.getElementById("runColor").value;
+    warningDisplay.style.background = document.getElementById("warningColor").value;
+    overDisplay.style.background = document.getElementById("overColor").value;
+}
+
+document.querySelectorAll('input[type="color"]').forEach(input=>{
+    input.addEventListener('input', updateColorDisplays);
+});
+
+updateColorDisplays();
+
+/* FORMATEAR TIEMPO */
 function formatTime() {
     const m = String(Math.floor(seconds / 60)).padStart(2,'0');
     const s = String(seconds % 60).padStart(2,'0');
@@ -245,18 +272,18 @@ function updateDisplay() {
     updateColor();
 }
 
-/* START / PAUSE */
+/* START / PAUSE TOGGLE */
 startPauseBtn.addEventListener("click", () => {
     if (!running) {
         running = true;
-        startPauseBtn.textContent = "⏸";
+        startPauseBtn.textContent = "Pausa";
         interval = setInterval(() => {
             seconds++;
             updateDisplay();
         }, 1000);
     } else {
         running = false;
-        startPauseBtn.textContent = "▶";
+        startPauseBtn.textContent = "Inicio";
         clearInterval(interval);
     }
 });
@@ -265,7 +292,7 @@ function resetTimer() {
     running = false;
     clearInterval(interval);
     seconds = 0;
-    startPauseBtn.textContent = "▶";
+    startPauseBtn.textContent = "Inicio";
     updateDisplay();
 }
 
