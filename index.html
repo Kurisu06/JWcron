@@ -106,6 +106,13 @@ button:hover {
     opacity: 0.9;
 }
 
+/* INPUT COLOR Y CUADRITO */
+.color-picker-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
 input[type="color"] {
     width: 42px;
     height: 32px;
@@ -115,7 +122,7 @@ input[type="color"] {
     cursor: pointer;
 }
 
-/* MOSTRAR COLOR SELECCIONADO */
+/* CUADRITO COLOR SELECCIONADO */
 .color-display {
     width: 32px;
     height: 32px;
@@ -188,26 +195,39 @@ input[type="color"] {
         </div>
 
         <div class="color-controls">
+
             <div class="color-item">
                 <span>Color en pausa</span>
-                <input type="color" id="pauseColor" value="#3f3f46">
-                <div class="color-display" id="pauseDisplay"></div>
+                <div class="color-picker-container">
+                    <input type="color" id="pauseColor" value="#3f3f46">
+                    <div class="color-display" id="pauseDisplay"></div>
+                </div>
             </div>
+
             <div class="color-item">
                 <span>Color en movimiento</span>
-                <input type="color" id="runColor" value="#16a34a">
-                <div class="color-display" id="runDisplay"></div>
+                <div class="color-picker-container">
+                    <input type="color" id="runColor" value="#16a34a">
+                    <div class="color-display" id="runDisplay"></div>
+                </div>
             </div>
+
             <div class="color-item">
                 <span>Color advertencia</span>
-                <input type="color" id="warningColor" value="#f59e0b">
-                <div class="color-display" id="warningDisplay"></div>
+                <div class="color-picker-container">
+                    <input type="color" id="warningColor" value="#f59e0b">
+                    <div class="color-display" id="warningDisplay"></div>
+                </div>
             </div>
+
             <div class="color-item">
                 <span>Tiempo excedido</span>
-                <input type="color" id="overColor" value="#dc2626">
-                <div class="color-display" id="overDisplay"></div>
+                <div class="color-picker-container">
+                    <input type="color" id="overColor" value="#dc2626">
+                    <div class="color-display" id="overDisplay"></div>
+                </div>
             </div>
+
         </div>
 
     </div>
@@ -297,7 +317,6 @@ function resetTimer() {
     updateDisplay();
 }
 
-/* STOP */
 function stopTimer() {
     running = false;
     clearInterval(interval);
