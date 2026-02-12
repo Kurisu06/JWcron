@@ -17,7 +17,6 @@ body {
     align-items: center;
 }
 
-/* CONTENEDOR GENERAL */
 .container {
     display: flex;
     flex-direction: column;
@@ -25,7 +24,6 @@ body {
     gap: 22px;
 }
 
-/* RECTÁNGULO DEL CRONÓMETRO */
 .timer-box {
     width: 520px;
     height: 160px;
@@ -40,7 +38,6 @@ body {
     transition: background 0.4s ease, all 0.3s ease;
 }
 
-/* CONTROLES */
 .controls {
     display: flex;
     gap: 10px;
@@ -64,24 +61,37 @@ button:hover {
     background: #334155;
 }
 
-/* CONFIGURACIÓN */
 .settings {
     display: flex;
-    gap: 14px;
+    flex-direction: column;
+    gap: 12px;
     align-items: center;
-    font-size: 13px;
-    opacity: 0.9;
+    font-size: 14px;
+    margin-top: 10px;
 }
 
-/* Color picker minimalista */
-.settings label {
+.limit-control {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 10px;
+}
+
+.color-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.color-item {
+    display: flex;
+    justify-content: space-between;
+    width: 260px;
+    align-items: center;
 }
 
 input[type="color"] {
-    width: 28px;
+    width: 32px;
     height: 28px;
     border: none;
     padding: 0;
@@ -89,12 +99,10 @@ input[type="color"] {
     cursor: pointer;
 }
 
-/* Ocultar controles en fullscreen */
 .hidden {
     display: none;
 }
 
-/* Botón salir fullscreen */
 #exitFullscreenBtn {
     position: fixed;
     top: 12px;
@@ -130,13 +138,34 @@ input[type="color"] {
     </div>
 
     <div class="settings">
-        <span>Límite</span>
-        <input type="number" id="limitInput" value="5" min="1" style="width:60px;">
-        
-        <label>P<input type="color" id="pauseColor" value="#3f3f46"></label>
-        <label>M<input type="color" id="runColor" value="#16a34a"></label>
-        <label>A<input type="color" id="warningColor" value="#f59e0b"></label>
-        <label>E<input type="color" id="overColor" value="#dc2626"></label>
+
+        <div class="limit-control">
+            <span>Tiempo límite (min)</span>
+            <input type="number" id="limitInput" value="5" min="1" style="width:70px;">
+        </div>
+
+        <div class="color-controls">
+            <div class="color-item">
+                <span>Color en pausa</span>
+                <input type="color" id="pauseColor" value="#3f3f46">
+            </div>
+
+            <div class="color-item">
+                <span>Color en movimiento</span>
+                <input type="color" id="runColor" value="#16a34a">
+            </div>
+
+            <div class="color-item">
+                <span>Color advertencia</span>
+                <input type="color" id="warningColor" value="#f59e0b">
+            </div>
+
+            <div class="color-item">
+                <span>Tiempo excedido</span>
+                <input type="color" id="overColor" value="#dc2626">
+            </div>
+        </div>
+
     </div>
 
 </div>
