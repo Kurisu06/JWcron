@@ -14,6 +14,8 @@ html, body {
     color: white;
     height: 100%;
 }
+
+/* CONTENEDOR */
 .container {
     min-height: 100vh;
     display: flex;
@@ -24,6 +26,8 @@ html, body {
     padding: 20px;
     box-sizing: border-box;
 }
+
+/* RECTÁNGULO DEL CRONÓMETRO */
 .timer-box {
     width: min(90vw, 600px);
     height: clamp(120px, 20vw, 200px);
@@ -37,12 +41,15 @@ html, body {
     letter-spacing: 6px;
     transition: all 0.3s ease;
 }
+
+/* CONTROLES */
 .controls {
     display: flex;
     gap: 12px;
     flex-wrap: wrap;
     justify-content: center;
 }
+
 button, input {
     background: #1e293b;
     border: none;
@@ -51,9 +58,17 @@ button, input {
     border-radius: 10px;
     font-size: 14px;
 }
-button { cursor: pointer; transition: 0.2s ease; }
-button:hover { background: #334155; }
 
+button {
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+button:hover {
+    background: #334155;
+}
+
+/* CONFIGURACIÓN */
 .settings {
     display: flex;
     flex-direction: column;
@@ -62,17 +77,21 @@ button:hover { background: #334155; }
     width: 100%;
     max-width: 380px;
 }
+
 .limit-control {
     display: flex;
     align-items: center;
     gap: 10px;
 }
+
+/* CONTROLES DE COLOR */
 .color-controls {
     display: flex;
     flex-direction: column;
     gap: 12px;
     width: 100%;
 }
+
 .color-item {
     display: flex;
     justify-content: space-between;
@@ -81,10 +100,23 @@ button:hover { background: #334155; }
     padding: 8px 12px;
     border-radius: 12px;
 }
-.color-item span { font-size: 13px; opacity: 0.9; }
 
-input[type="color"] { width: 42px; height: 32px; border: none; border-radius: 6px; cursor: pointer; }
+.color-item span {
+    font-size: 13px;
+    opacity: 0.9;
+}
 
+/* INPUT COLOR */
+input[type="color"] {
+    width: 42px;
+    height: 32px;
+    border: none;
+    border-radius: 6px;
+    padding: 0;
+    cursor: pointer;
+}
+
+/* FULLSCREEN */
 .fullscreen-active {
     position: fixed;
     inset: 0;
@@ -94,12 +126,15 @@ input[type="color"] { width: 42px; height: 32px; border: none; border-radius: 6p
     align-items: center;
     z-index: 9999;
 }
+
 .fullscreen-active .timer-box {
     width: 100vw !important;
     height: 100vh !important;
     border-radius: 0 !important;
     font-size: clamp(120px, 20vw, 300px) !important;
 }
+
+/* BOTÓN SALIR */
 #exitFullscreenBtn {
     position: fixed;
     top: 15px;
@@ -113,8 +148,14 @@ input[type="color"] { width: 42px; height: 32px; border: none; border-radius: 6p
     display: none;
     z-index: 10000;
 }
-#exitFullscreenBtn:hover { opacity: 0.9; }
-.hidden { display: none !important; }
+
+#exitFullscreenBtn:hover {
+    opacity: 0.9;
+}
+
+.hidden {
+    display: none !important;
+}
 </style>
 </head>
 <body>
@@ -140,36 +181,38 @@ input[type="color"] { width: 42px; height: 32px; border: none; border-radius: 6p
         </div>
 
         <div class="color-controls">
-            <div class="color-item"><span>Color en pausa</span><input type="color" id="pauseColor" value="#3f3f46"></div>
-            <div class="color-item"><span>Color en movimiento</span><input type="color" id="runColor" value="#16a34a"></div>
-            <div class="color-item"><span>Color advertencia</span><input type="color" id="warningColor" value="#f59e0b"></div>
-            <div class="color-item"><span>Tiempo excedido</span><input type="color" id="overColor" value="#dc2626"></div>
+
+            <div class="color-item">
+                <span>Color en pausa</span>
+                <input type="color" id="pauseColor" value="#3f3f46">
+            </div>
+
+            <div class="color-item">
+                <span>Color en movimiento</span>
+                <input type="color" id="runColor" value="#16a34a">
+            </div>
+
+            <div class="color-item">
+                <span>Color advertencia</span>
+                <input type="color" id="warningColor" value="#f59e0b">
+            </div>
+
+            <div class="color-item">
+                <span>Tiempo excedido</span>
+                <input type="color" id="overColor" value="#dc2626">
+            </div>
+
         </div>
 
     </div>
 
 </div>
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyCvSPy2Oc18SPSatbiBa88UgK1nXYm8syU",
-  authDomain: "crono06-f0f35.firebaseapp.com",
-  projectId: "crono06-f0f35",
-  storageBucket: "crono06-f0f35.firebasestorage.app",
-  messagingSenderId: "733605210024",
-  appId: "1:733605210024:web:3558ba91e3fb207c631f9d"
-};
-
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const cronometroRef = db.ref("cronometro");
-
 let seconds = 0;
 let running = false;
+let interval;
+let fullscreenActive = false;
 
 const timerBox = document.getElementById("timer");
 const mainContent = document.getElementById("mainContent");
@@ -183,58 +226,61 @@ function formatTime() {
     return `${m}:${s}`;
 }
 
-function updateColor(data) {
-    const limit = data.limit || 300;
+function updateColor() {
+    const limit = document.getElementById("limitInput").value * 60;
+    const pauseColor = document.getElementById("pauseColor").value;
+    const runColor = document.getElementById("runColor").value;
+    const warningColor = document.getElementById("warningColor").value;
+    const overColor = document.getElementById("overColor").value;
+
     let color;
-    if (!data.running) color = data.colors?.pause || "#3f3f46";
-    else if (seconds >= limit) color = data.colors?.over || "#dc2626";
-    else if (seconds >= limit - 30) color = data.colors?.warning || "#f59e0b";
-    else color = data.colors?.run || "#16a34a";
+
+    if (!running) color = pauseColor;
+    else if (seconds >= limit) color = overColor;
+    else if (seconds >= limit - 30) color = warningColor;
+    else color = runColor;
+
     timerBox.style.background = color;
 }
 
-function updateDisplay(data) {
-    seconds = data.time || 0;
+function updateDisplay() {
     timerBox.textContent = formatTime();
-    updateColor(data);
+    updateColor();
 }
 
-/* ESCUCHAR CAMBIOS EN FIREBASE */
-cronometroRef.on("value", (snapshot)=>{
-    const data = snapshot.val();
-    if (!data) return;
-    updateDisplay(data);
-});
-
-/* BOTONES */
-startPauseBtn.addEventListener("click", ()=>{
-    cronometroRef.once("value").then(snap=>{
-        const data = snap.val() || {};
-        cronometroRef.update({ running: !data.running });
-    });
+/* START / PAUSA TOGGLE */
+startPauseBtn.addEventListener("click", () => {
+    if (!running) {
+        running = true;
+        startPauseBtn.textContent = "Pausa";
+        interval = setInterval(() => {
+            seconds++;
+            updateDisplay();
+        }, 1000);
+    } else {
+        running = false;
+        startPauseBtn.textContent = "Inicio";
+        clearInterval(interval);
+    }
 });
 
 function resetTimer() {
-    cronometroRef.update({ running:false, time:0 });
+    running = false;
+    clearInterval(interval);
+    seconds = 0;
+    startPauseBtn.textContent = "Inicio";
+    updateDisplay();
 }
 
 function stopTimer() {
-    cronometroRef.update({ running:false, time:0 });
+    running = false;
+    clearInterval(interval);
+    seconds = 0;
+    startPauseBtn.textContent = "Inicio";
+    updateDisplay();
 }
 
-/* CAMBIAR LIMIT Y COLORES */
-document.getElementById("limitInput").addEventListener("change",(e)=>{
-    cronometroRef.update({ limit: e.target.value*60 });
-});
-
-["pauseColor","runColor","warningColor","overColor"].forEach(id=>{
-    document.getElementById(id).addEventListener("input",(e)=>{
-        cronometroRef.child("colors").update({ [id.replace("Color","").toLowerCase()]: e.target.value });
-    });
-});
-
 /* FULLSCREEN */
-let fullscreenActive = false;
 function toggleFullscreen() {
     if (!fullscreenActive) {
         fullscreenActive = true;
@@ -242,30 +288,27 @@ function toggleFullscreen() {
         mainContent.querySelectorAll(".controls, .settings").forEach(e => e.classList.add("hidden"));
         exitBtn.style.display = "block";
         document.body.style.overflow = "hidden";
-        if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
+
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch(()=>{});
+        }
     }
 }
-exitBtn.addEventListener("click", ()=>{
+
+exitBtn.addEventListener("click", () => {
     fullscreenActive = false;
     mainContent.classList.remove("fullscreen-active");
     mainContent.querySelectorAll(".controls, .settings").forEach(e => e.classList.remove("hidden"));
     exitBtn.style.display = "none";
     document.body.style.overflow = "auto";
-    if (document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+
+    if (document.exitFullscreen) {
+        document.exitFullscreen().catch(()=>{});
+    }
 });
 
-/* INCREMENTO LOCAL CADA SEGUNDO */
-setInterval(()=>{
-    cronometroRef.once("value").then(snap=>{
-        const data = snap.val() || {};
-        if(data.running){
-            cronometroRef.update({ time: (data.time||0)+1 });
-        }
-    });
-},1000);
-
+updateDisplay();
 </script>
 
 </body>
 </html>
-
