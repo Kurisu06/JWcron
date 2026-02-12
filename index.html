@@ -7,7 +7,7 @@
 
 <style>
 :root {
-    --pause: #3a3a3a;
+    --pause: #444444;
     --run: #16a34a;
     --warning: #f59e0b;
     --over: #dc2626;
@@ -22,31 +22,34 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    transition: background 0.4s ease;
 }
 
 .container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 25px;
+    gap: 20px;
 }
 
 .timer {
-    width: 360px;
-    height: 160px;
+    width: 380px;
+    height: 170px;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 80px;
+    font-size: 85px;
     font-weight: 600;
-    border-radius: 18px;
+    border-radius: 20px;
     background: var(--pause);
     transition: 0.4s ease;
-    letter-spacing: 3px;
+    letter-spacing: 4px;
 }
 
-.controls {
+.controls, .settings {
     display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 10px;
 }
 
@@ -54,7 +57,7 @@ button, input {
     background: #1e293b;
     border: none;
     color: white;
-    padding: 10px 14px;
+    padding: 8px 12px;
     border-radius: 10px;
     font-size: 14px;
 }
@@ -68,17 +71,42 @@ button:hover {
     background: #334155;
 }
 
-.settings {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 14px;
+input[type="color"] {
+    padding: 2px;
+    height: 35px;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Botón salir pantalla completa */
+#exitFullscreenBtn {
+    position: fixed;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0,0,0,0.6);
+    border: none;
+    color: white;
+    padding: 10px 8px;
+    border-radius: 0 10px 10px 0;
+    cursor: pointer;
+    font-size: 12px;
+    display: none;
+    z-index: 999;
+}
+
+#exitFullscreenBtn:hover {
+    background: rgba(0,0,0,0.8);
 }
 </style>
 </head>
 <body>
 
-<div class="container">
+<button id="exitFullscreenBtn" onclick="exitFullscreen()">Salir</button>
+
+<div class="container" id="mainContent">
 
     <div class="timer" id="timer">00:00</div>
 
@@ -86,12 +114,19 @@ button:hover {
         <button onclick="startTimer()">▶</button>
         <button onclick="pauseTimer()">⏸</button>
         <button onclick="resetTimer()">⟲</button>
-        <button onclick="openFullscreen()">⛶</button>
+        <button onclick="toggleFullscreen()">⛶</button>
     </div>
 
     <div class="settings">
         <span>Límite (min)</span>
         <input type="number" id="limitInput" value="5" min="1" style="width:60px;">
+    </div>
+
+    <div class="settings">
+        <span>Pausa</span><input type="color" id="pauseColor" value="#444444">
+        <span>En marcha</span><input type="color" id="runColor" value="#16a34a">
+        <span>Advertencia</span><input type="color" id="warningColor" value="#f59e0b">
+        <span>Excedido</span><input type="color" id="overColor" value="#dc2626">
     </div>
 
 </div>
@@ -100,9 +135,10 @@ button:hover {
 let seconds = 0;
 let running = false;
 let interval;
-let displayWindow = null;
 
 const timerDisplay = document.getElementById("timer");
+const mainContent = document.getElementById("mainContent");
+const exitBtn = document.getElementById("exitFullscreenBtn");
 
 function formatTime() {
     const m = String(Math.floor(seconds / 60)).padStart(2,'0');
@@ -110,28 +146,27 @@ function formatTime() {
     return `${m}:${s}`;
 }
 
-function updateColor(target) {
+function updateColor() {
     const limit = document.getElementById("limitInput").value * 60;
+    const pauseColor = document.getElementById("pauseColor").value;
+    const runColor = document.getElementById("runColor").value;
+    const warningColor = document.getElementById("warningColor").value;
+    const overColor = document.getElementById("overColor").value;
+
     let color;
 
-    if (!running) color = getComputedStyle(document.documentElement).getPropertyValue('--pause');
-    else if (seconds >= limit) color = getComputedStyle(document.documentElement).getPropertyValue('--over');
-    else if (seconds >= limit - 30) color = getComputedStyle(document.documentElement).getPropertyValue('--warning');
-    else color = getComputedStyle(document.documentElement).getPropertyValue('--run');
+    if (!running) color = pauseColor;
+    else if (seconds >= limit) color = overColor;
+    else if (seconds >= limit - 30) color = warningColor;
+    else color = runColor;
 
-    target.style.background = color;
+    timerDisplay.style.background = color;
+    document.body.style.background = color;
 }
 
 function updateDisplay() {
-    const time = formatTime();
-    timerDisplay.textContent = time;
-    updateColor(timerDisplay);
-
-    if (displayWindow && !displayWindow.closed) {
-        const fsTimer = displayWindow.document.getElementById("fsTimer");
-        fsTimer.textContent = time;
-        updateColor(displayWindow.document.body);
-    }
+    timerDisplay.textContent = formatTime();
+    updateColor();
 }
 
 function startTimer() {
@@ -157,43 +192,34 @@ function resetTimer() {
     updateDisplay();
 }
 
-function openFullscreen() {
-
-    displayWindow = window.open("", "_blank");
-
-    displayWindow.document.write(`
-        <html>
-        <head>
-        <title>Cronómetro</title>
-        <style>
-            body {
-                margin:0;
-                display:flex;
-                justify-content:center;
-                align-items:center;
-                height:100vh;
-                background:black;
-                color:white;
-                font-family: 'Segoe UI', sans-serif;
-                font-size:180px;
-                font-weight:600;
-                letter-spacing:6px;
-            }
-        </style>
-        </head>
-        <body>
-            <div id="fsTimer">00:00</div>
-        </body>
-        </html>
-    `);
-
-    displayWindow.document.close();
-
-    // Forzar pantalla completa automáticamente
-    displayWindow.onload = function() {
-        displayWindow.document.documentElement.requestFullscreen().catch(()=>{});
-    };
+function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+        mainContent.querySelectorAll(".controls, .settings").forEach(e => e.classList.add("hidden"));
+        timerDisplay.style.fontSize = "180px";
+        timerDisplay.style.width = "100vw";
+        timerDisplay.style.height = "100vh";
+        timerDisplay.style.borderRadius = "0";
+        exitBtn.style.display = "block";
+    }
 }
+
+function exitFullscreen() {
+    document.exitFullscreen();
+}
+
+document.addEventListener("fullscreenchange", () => {
+    if (!document.fullscreenElement) {
+        mainContent.querySelectorAll(".controls, .settings").forEach(e => e.classList.remove("hidden"));
+        timerDisplay.style.fontSize = "85px";
+        timerDisplay.style.width = "380px";
+        timerDisplay.style.height = "170px";
+        timerDisplay.style.borderRadius = "20px";
+        exitBtn.style.display = "none";
+        document.body.style.background = "#0f172a";
+        updateColor();
+    }
+});
 
 updateDisplay();
 </script>
@@ -201,7 +227,7 @@ updateDisplay();
 </body>
 </html>
 
-</html>
+
 
 
 
