@@ -15,9 +15,9 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: background 0.3s ease;
 }
 
+/* CONTENEDOR */
 .container {
     display: flex;
     flex-direction: column;
@@ -29,6 +29,7 @@ body {
     box-sizing: border-box;
 }
 
+/* RECTÁNGULO RESPONSIVE */
 .timer-box {
     width: min(90vw, 600px);
     height: clamp(120px, 20vw, 200px);
@@ -40,7 +41,7 @@ body {
     border-radius: 20px;
     background: #3f3f46;
     letter-spacing: 6px;
-    transition: all 0.3s ease;
+    transition: background 0.4s ease, all 0.3s ease;
     text-align: center;
 }
 
@@ -108,25 +109,11 @@ input[type="color"] {
     cursor: pointer;
 }
 
-/* FULLSCREEN VISUAL (COMPATIBLE UNIVERSAL) */
-.fullscreen-mode {
-    position: fixed;
-    inset: 0;
-    background: #0f172a;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
+/* FULLSCREEN */
+.hidden {
+    display: none;
 }
 
-.fullscreen-mode .timer-box {
-    width: 100vw !important;
-    height: 100vh !important;
-    border-radius: 0 !important;
-    font-size: clamp(100px, 22vw, 260px) !important;
-}
-
-/* BOTÓN SALIR */
 #exitFullscreenBtn {
     position: fixed;
     top: 15px;
@@ -134,33 +121,30 @@ input[type="color"] {
     background: none;
     border: none;
     color: white;
-    font-size: 26px;
+    font-size: 24px;
     opacity: 0.35;
     cursor: pointer;
     display: none;
-    z-index: 10000;
     transition: 0.2s ease;
+    z-index: 999;
 }
 
 #exitFullscreenBtn:hover {
-    opacity: 0.9;
-}
-
-.hidden {
-    display: none !important;
+    opacity: 0.8;
 }
 </style>
 </head>
 <body>
 
-<button id="exitFullscreenBtn">←</button>
+<button id="exitFullscreenBtn" onclick="exitFullscreen()">←</button>
 
 <div class="container" id="mainContent">
 
     <div class="timer-box" id="timer">00:00</div>
 
     <div class="controls">
-        <button id="startPauseBtn">▶</button>
+        <button onclick="startTimer()">▶</button>
+        <button onclick="pauseTimer()">⏸</button>
         <button onclick="resetTimer()">⟲</button>
         <button onclick="toggleFullscreen()">⛶</button>
     </div>
@@ -202,12 +186,10 @@ input[type="color"] {
 let seconds = 0;
 let running = false;
 let interval;
-let fullscreenActive = false;
 
 const timerBox = document.getElementById("timer");
 const mainContent = document.getElementById("mainContent");
 const exitBtn = document.getElementById("exitFullscreenBtn");
-const startPauseBtn = document.getElementById("startPauseBtn");
 
 function formatTime() {
     const m = String(Math.floor(seconds / 60)).padStart(2,'0');
@@ -237,48 +219,66 @@ function updateDisplay() {
     updateColor();
 }
 
-/* TOGGLE START / PAUSE */
-startPauseBtn.addEventListener("click", () => {
+function startTimer() {
     if (!running) {
         running = true;
-        startPauseBtn.textContent = "⏸";
         interval = setInterval(() => {
             seconds++;
             updateDisplay();
         }, 1000);
-    } else {
-        running = false;
-        startPauseBtn.textContent = "▶";
-        clearInterval(interval);
     }
-});
+}
+
+function pauseTimer() {
+    running = false;
+    clearInterval(interval);
+    updateDisplay();
+}
 
 function resetTimer() {
     running = false;
     clearInterval(interval);
     seconds = 0;
-    startPauseBtn.textContent = "▶";
     updateDisplay();
 }
 
-/* FULLSCREEN UNIVERSAL */
 function toggleFullscreen() {
-    if (!fullscreenActive) {
-        fullscreenActive = true;
-        mainContent.classList.add("fullscreen-mode");
+    const docElm = document.documentElement;
+    if (!document.fullscreenElement) {
+        if (docElm.requestFullscreen) docElm.requestFullscreen();
+        else if (docElm.webkitRequestFullscreen) docElm.webkitRequestFullscreen();
+        else if (docElm.msRequestFullscreen) docElm.msRequestFullscreen();
+
         mainContent.querySelectorAll(".controls, .settings").forEach(e => e.classList.add("hidden"));
+        timerBox.style.width = "100vw";
+        timerBox.style.height = "100vh";
+        timerBox.style.borderRadius = "0";
+        timerBox.style.fontSize = "clamp(80px, 20vw, 240px)";
         exitBtn.style.display = "block";
         document.body.style.overflow = "hidden";
     }
 }
 
-exitBtn.addEventListener("click", () => {
-    fullscreenActive = false;
-    mainContent.classList.remove("fullscreen-mode");
-    mainContent.querySelectorAll(".controls, .settings").forEach(e => e.classList.remove("hidden"));
-    exitBtn.style.display = "none";
-    document.body.style.overflow = "auto";
-});
+function exitFullscreen() {
+    if (document.exitFullscreen) document.exitFullscreen();
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    else if (document.msExitFullscreen) document.msExitFullscreen();
+}
+
+document.addEventListener("fullscreenchange", restoreLayout);
+document.addEventListener("webkitfullscreenchange", restoreLayout);
+
+function restoreLayout() {
+    if (!document.fullscreenElement) {
+        mainContent.querySelectorAll(".controls, .settings").forEach(e => e.classList.remove("hidden"));
+        timerBox.style.width = "min(90vw, 600px)";
+        timerBox.style.height = "clamp(120px, 20vw, 200px)";
+        timerBox.style.borderRadius = "20px";
+        timerBox.style.fontSize = "clamp(60px, 10vw, 140px)";
+        exitBtn.style.display = "none";
+        document.body.style.overflow = "auto";
+    }
+}
 
 updateDisplay();
 </script>
