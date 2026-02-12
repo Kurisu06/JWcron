@@ -15,14 +15,14 @@ html, body {
     height: 100%;
 }
 
-/* CONTENEDOR PRINCIPAL */
+/* CONTENEDOR */
 .container {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 20px;
+    gap: 22px;
     padding: 20px;
     box-sizing: border-box;
 }
@@ -45,7 +45,7 @@ html, body {
 /* CONTROLES */
 .controls {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     flex-wrap: wrap;
     justify-content: center;
 }
@@ -72,8 +72,10 @@ button:hover {
 .settings {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
     align-items: center;
+    width: 100%;
+    max-width: 380px;
 }
 
 .limit-control {
@@ -82,29 +84,40 @@ button:hover {
     gap: 10px;
 }
 
+/* CONTROLES DE COLOR MEJORADOS */
 .color-controls {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
     width: 100%;
-    max-width: 320px;
 }
 
 .color-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background: #1e293b;
+    padding: 8px 12px;
+    border-radius: 12px;
 }
 
+.color-item span {
+    font-size: 13px;
+    opacity: 0.9;
+}
+
+/* Color picker limpio y grande */
 input[type="color"] {
-    width: 36px;
-    height: 30px;
+    width: 42px;
+    height: 32px;
     border: none;
+    border-radius: 6px;
+    padding: 0;
     background: none;
     cursor: pointer;
 }
 
-/* FULLSCREEN REAL + VISUAL */
+/* FULLSCREEN */
 .fullscreen-active {
     position: fixed;
     inset: 0;
@@ -115,7 +128,6 @@ input[type="color"] {
     z-index: 9999;
 }
 
-/* El cronómetro ocupa TODA la pantalla */
 .fullscreen-active .timer-box {
     width: 100vw !important;
     height: 100vh !important;
@@ -123,7 +135,7 @@ input[type="color"] {
     font-size: clamp(120px, 20vw, 300px) !important;
 }
 
-/* Botón salir */
+/* BOTÓN SALIR */
 #exitFullscreenBtn {
     position: fixed;
     top: 15px;
@@ -173,14 +185,17 @@ input[type="color"] {
                 <span>Color en pausa</span>
                 <input type="color" id="pauseColor" value="#3f3f46">
             </div>
+
             <div class="color-item">
                 <span>Color en movimiento</span>
                 <input type="color" id="runColor" value="#16a34a">
             </div>
+
             <div class="color-item">
                 <span>Color advertencia</span>
                 <input type="color" id="warningColor" value="#f59e0b">
             </div>
+
             <div class="color-item">
                 <span>Tiempo excedido</span>
                 <input type="color" id="overColor" value="#dc2626">
