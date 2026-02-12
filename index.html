@@ -6,60 +6,62 @@
 <title>Cronómetro de Discursos</title>
 
 <style>
-    body {
-        margin: 0;
-        font-family: Arial, sans-serif;
-        background-color: #111;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        color: white;
-        flex-direction: column;
-    }
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #111;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    color: white;
+}
 
-    .container {
-        text-align: center;
-    }
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
 
-    .timer {
-        width: 320px;
-        height: 140px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 60px;
-        font-weight: bold;
-        border-radius: 20px;
-        margin-bottom: 20px;
-        transition: background-color 0.5s ease;
-        background-color: gray;
-    }
+.timer {
+    width: 340px;
+    height: 150px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 70px;
+    font-weight: bold;
+    border-radius: 20px;
+    margin-bottom: 25px;
+    transition: background-color 0.5s ease;
+    background-color: gray;
+}
 
-    .controls, .settings {
-        margin: 10px 0;
-    }
+.controls, .settings {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    margin: 8px 0;
+    gap: 10px;
+}
 
-    input, button {
-        padding: 8px;
-        margin: 5px;
-        font-size: 16px;
-        border-radius: 8px;
-        border: none;
-    }
+input, button {
+    padding: 8px 12px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: none;
+}
 
-    button {
-        cursor: pointer;
-    }
-
-    .hidden {
-        display: none;
-    }
+button {
+    cursor: pointer;
+}
 </style>
 </head>
 <body>
 
-<div class="container" id="mainContainer">
+<div class="container">
 
     <div class="timer" id="timer">00:00</div>
 
@@ -67,19 +69,19 @@
         <button onclick="startTimer()">Iniciar</button>
         <button onclick="pauseTimer()">Pausar</button>
         <button onclick="resetTimer()">Reiniciar</button>
-        <button onclick="toggleFullScreen()">Pantalla Completa</button>
+        <button onclick="openFullscreenWindow()">Pantalla Completa</button>
     </div>
 
     <div class="settings">
-        <label>Tiempo límite (minutos): </label>
+        <label>Tiempo límite (min):</label>
         <input type="number" id="limitInput" min="1" value="5">
     </div>
 
     <div class="settings">
-        <label>Color en pausa: </label><input type="color" id="pauseColor" value="#808080">
-        <label>Color en marcha: </label><input type="color" id="runColor" value="#28a745">
-        <label>Color cerca del límite: </label><input type="color" id="warningColor" value="#ffc107">
-        <label>Color excedido: </label><input type="color" id="overColor" value="#dc3545">
+        <label>Pausa:</label><input type="color" id="pauseColor" value="#808080">
+        <label>En marcha:</label><input type="color" id="runColor" value="#28a745">
+        <label>Advertencia:</label><input type="color" id="warningColor" value="#ffc107">
+        <label>Excedido:</label><input type="color" id="overColor" value="#dc3545">
     </div>
 
 </div>
@@ -88,34 +90,48 @@
 let timer;
 let seconds = 0;
 let running = false;
+let fullScreenWindow = null;
 
 const timerDisplay = document.getElementById("timer");
 
 function updateDisplay() {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    timerDisplay.textContent =
-        String(mins).padStart(2, '0') + ":" +
-        String(secs).padStart(2, '0');
+    const timeText = String(mins).padStart(2,'0') + ":" + String(secs).padStart(2,'0');
 
-    updateColor();
+    timerDisplay.textContent = timeText;
+
+    if (fullScreenWindow && !fullScreenWindow.closed) {
+        fullScreenWindow.document.getElementById("fsTimer").textContent = timeText;
+        updateColor(true);
+    }
+
+    updateColor(false);
 }
 
-function updateColor() {
+function updateColor(isFullscreen) {
     const limit = document.getElementById("limitInput").value * 60;
     const pauseColor = document.getElementById("pauseColor").value;
     const runColor = document.getElementById("runColor").value;
     const warningColor = document.getElementById("warningColor").value;
     const overColor = document.getElementById("overColor").value;
 
+    let color;
+
     if (!running) {
-        timerDisplay.style.backgroundColor = pauseColor;
+        color = pauseColor;
     } else if (seconds >= limit) {
-        timerDisplay.style.backgroundColor = overColor;
+        color = overColor;
     } else if (seconds >= limit - 30) {
-        timerDisplay.style.backgroundColor = warningColor;
+        color = warningColor;
     } else {
-        timerDisplay.style.backgroundColor = runColor;
+        color = runColor;
+    }
+
+    if (isFullscreen && fullScreenWindow && !fullScreenWindow.closed) {
+        fullScreenWindow.document.body.style.backgroundColor = color;
+    } else {
+        timerDisplay.style.backgroundColor = color;
     }
 }
 
@@ -132,7 +148,7 @@ function startTimer() {
 function pauseTimer() {
     running = false;
     clearInterval(timer);
-    updateColor();
+    updateDisplay();
 }
 
 function resetTimer() {
@@ -142,17 +158,36 @@ function resetTimer() {
     updateDisplay();
 }
 
-function toggleFullScreen() {
-    const elem = document.documentElement;
-    if (!document.fullscreenElement) {
-        elem.requestFullscreen();
-        document.querySelector(".controls").classList.add("hidden");
-        document.querySelectorAll(".settings").forEach(e => e.classList.add("hidden"));
-    } else {
-        document.exitFullscreen();
-        document.querySelector(".controls").classList.remove("hidden");
-        document.querySelectorAll(".settings").forEach(e => e.classList.remove("hidden"));
-    }
+function openFullscreenWindow() {
+
+    fullScreenWindow = window.open("", "_blank");
+
+    fullScreenWindow.document.write(`
+        <html>
+        <head>
+        <title>Cronómetro</title>
+        <style>
+            body {
+                margin: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                font-family: Arial, sans-serif;
+                font-size: 120px;
+                font-weight: bold;
+                color: white;
+                background-color: black;
+            }
+        </style>
+        </head>
+        <body>
+            <div id="fsTimer">00:00</div>
+        </body>
+        </html>
+    `);
+
+    fullScreenWindow.document.close();
 }
 
 updateDisplay();
@@ -160,5 +195,9 @@ updateDisplay();
 
 </body>
 </html>
+
+</body>
+</html>
+
 
 
