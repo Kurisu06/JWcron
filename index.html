@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cronómetro de Discursos</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #222;
+    color: white;
+}
+
+.container {
+    text-align: center;
+}
+
+.timer {
+    font-size: 8vw;
+    font-weight: bold;
+    padding: 40px;
+    border-radius: 20px;
+    background-color: gray;
+    width: 60vw;
+    height: 60vw;
+    max-width: 400px;
+    max-height: 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: auto;
+}
+
+.controls {
+    margin-top: 20px;
+}
+
+button, input {
+    padding: 10px;
+    margin: 5px;
+    font-size: 16px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <div id="timer" class="timer">00:00</div>
+
+    <div class="controls" id="controls">
+        <input type="number" id="limitInput" placeholder="Tiempo límite (segundos)">
+        <br>
+        <button onclick="start()">Iniciar</button>
+        <button onclick="stop()">Detener</button>
+        <button onclick="reset()">Reiniciar</button>
+        <button onclick="toggleFullscreen()">Pantalla Completa</button>
+    </div>
+</div>
+
+<script>
+let seconds = 0;
+let interval = null;
+let limit = 0;
+
+function formatTime(sec) {
+    let min = Math.floor(sec / 60);
+    let s = sec % 60;
+    return `${min.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+}
+
+function updateDisplay() {
+    const timer = document.getElementById("timer");
+    timer.textContent = formatTime(seconds);
+
+    if (interval === null) {
+        timer.style.backgroundColor = "gray";
+    } else if (limit > 0 && seconds >= limit) {
+        timer.style.backgroundColor = "red";
+    } else if (limit > 0 && seconds >= limit - 10) {
+        timer.style.backgroundColor = "orange";
+    } else {
+        timer.style.backgroundColor = "green";
+    }
+}
+
+function start() {
+    if (interval !== null) return;
+
+    limit = parseInt(document.getElementById("limitInput").value) || 0;
+
+    interval = setInterval(() => {
+        seconds++;
+        updateDisplay();
+    }, 1000);
+}
+
+function stop() {
+    clearInterval(interval);
+    interval = null;
+    updateDisplay();
+}
+
+function reset() {
+    stop();
+    seconds = 0;
+    updateDisplay();
+}
+
+function toggleFullscreen() {
+    const elem = document.documentElement;
+
+    if (!document.fullscreenElement) {
+        elem.requestFullscreen();
+        document.getElementById("controls").style.display = "none";
+    } else {
+        document.exitFullscreen();
+        document.getElementById("controls").style.display = "block";
+    }
+}
+
+updateDisplay();
+</script>
+
+</body>
+</html>
+<br>
+<label>Color Normal:</label>
+<input type="color" id="colorNormal" value="#00ff00">
+
+<label>Color Alerta:</label>
+<input type="color" id="colorWarning" value="#ffa500">
+
+<label>Color Excedido:</label>
+<input type="color" id="colorOver" value="#ff0000">
+const normalColor = document.getElementById("colorNormal").value;
+const warningColor = document.getElementById("colorWarning").value;
+const overColor = document.getElementById("colorOver").value;
+
+if (interval === null) {
+    timer.style.backgroundColor = "gray";
+} else if (limit > 0 && seconds >= limit) {
+    timer.style.backgroundColor = overColor;
+} else if (limit > 0 && seconds >= limit - 10) {
+    timer.style.backgroundColor = warningColor;
+} else {
+    timer.style.backgroundColor = normalColor;
+}
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
