@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Cronómetro</title>
-
 <style>
 html, body {
   margin: 0;
@@ -15,7 +14,6 @@ html, body {
   height: 100%;
   touch-action: manipulation;
 }
-
 .container {
   min-height: 100vh;
   display: flex;
@@ -26,7 +24,6 @@ html, body {
   padding: 20px;
   box-sizing: border-box;
 }
-
 .timer-box {
   width: min(90vw, 600px);
   height: clamp(120px, 20vw, 200px);
@@ -40,14 +37,12 @@ html, body {
   letter-spacing: 6px;
   transition: all 0.3s ease;
 }
-
 .controls {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
   justify-content: center;
 }
-
 button, input {
   background: #1e293b;
   border: none;
@@ -56,11 +51,11 @@ button, input {
   border-radius: 10px;
   font-size: 16px;
   user-select: none;
+  pointer-events: auto;
+  touch-action: manipulation;
 }
-
 button { cursor: pointer; }
 button:hover { background: #334155; }
-
 .settings {
   display: flex;
   flex-direction: column;
@@ -69,20 +64,17 @@ button:hover { background: #334155; }
   width: 100%;
   max-width: 380px;
 }
-
 .limit-control {
   display: flex;
   align-items: center;
   gap: 10px;
 }
-
 .color-controls {
   display: flex;
   flex-direction: column;
   gap: 12px;
   width: 100%;
 }
-
 .color-item {
   display: flex;
   justify-content: space-between;
@@ -91,7 +83,6 @@ button:hover { background: #334155; }
   padding: 8px 12px;
   border-radius: 12px;
 }
-
 input[type="color"] {
   width: 42px;
   height: 32px;
@@ -100,9 +91,7 @@ input[type="color"] {
   padding: 0;
   cursor: pointer;
 }
-
 .hidden { display: none !important; }
-
 #exitFullscreenBtn {
   position: fixed;
   top: 15px;
@@ -117,7 +106,6 @@ input[type="color"] {
   z-index: 10000;
 }
 #exitFullscreenBtn:hover { opacity: 1; }
-
 .fullscreen-active {
   position: fixed;
   inset: 0;
@@ -127,14 +115,12 @@ input[type="color"] {
   align-items: center;
   z-index: 9999;
 }
-
 .fullscreen-active .timer-box {
   width: 100vw !important;
   height: 100vh !important;
   border-radius: 0 !important;
   font-size: clamp(120px, 20vw, 300px) !important;
 }
-
 @media (max-width: 600px){
   button, input {
     font-size: 18px;
@@ -144,26 +130,20 @@ input[type="color"] {
 </style>
 </head>
 <body>
-
 <button id="exitFullscreenBtn">←</button>
-
 <div class="container" id="mainContent">
-
   <div class="timer-box" id="timer">00:00</div>
-
   <div class="controls">
     <button id="startPauseBtn">Inicio</button>
     <button id="resetBtn">Reiniciar</button>
     <button id="stopBtn">Stop</button>
     <button id="fullscreenBtn">Pantalla completa</button>
   </div>
-
   <div class="settings">
     <div class="limit-control">
       <span>Tiempo límite (min)</span>
       <input type="number" id="limitInput" value="5" min="1" style="width:70px;">
     </div>
-
     <div class="color-controls">
       <div class="color-item">
         <span>Color en pausa</span>
@@ -183,7 +163,6 @@ input[type="color"] {
       </div>
     </div>
   </div>
-
 </div>
 
 <script type="module">
@@ -205,7 +184,6 @@ const database = getDatabase(app);
 const cronoref = ref(database, "cronometro");
 
 let running = false;
-
 const timerBox = document.getElementById("timer");
 const startPauseBtn = document.getElementById("startPauseBtn");
 const resetBtn = document.getElementById("resetBtn");
@@ -216,7 +194,6 @@ const pauseColor = document.getElementById("pauseColor");
 const runColor = document.getElementById("runColor");
 const warningColor = document.getElementById("warningColor");
 const overColor = document.getElementById("overColor");
-
 const mainContent = document.getElementById("mainContent");
 const exitBtn = document.getElementById("exitFullscreenBtn");
 const controls = document.querySelector(".controls");
@@ -258,106 +235,58 @@ function updateFirebase(seconds){
   });
 }
 
+/* Función para manejar click/touch en móviles y escritorio */
+function addTapListener(el, fn){
+  if('ontouchstart' in window){
+    el.addEventListener('touchstart', e=>{
+      e.preventDefault();
+      fn();
+    });
+  } else {
+    el.addEventListener('click', fn);
+  }
+}
+
 /* Botones */
-function toggleStartPause(){
-  running = !running;
-  startPauseBtn.textContent = running ? "Pausa" : "Inicio";
-  lastUpdate = Date.now(); // reiniciamos referencia de tiempo
-  updateFirebase(seconds);
-}
-startPauseBtn.addEventListener("click", toggleStartPause);
-startPauseBtn.addEventListener("touchend", toggleStartPause);
+function toggleStartPause(){ running = !running; startPauseBtn.textContent = running ? "Pausa" : "Inicio"; lastUpdate = Date.now(); updateFirebase(seconds);}
+function resetTimer(){ running=false; seconds=0; startPauseBtn.textContent="Inicio"; lastUpdate = Date.now(); updateFirebase(seconds);}
+function stopTimer(){ running=false; startPauseBtn.textContent="Inicio"; lastUpdate = Date.now(); updateFirebase(seconds);}
+function enterFullscreen(){ try { const el=/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)?document.documentElement:mainContent; if(el.requestFullscreen) el.requestFullscreen(); else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen(); mainContent.classList.add("fullscreen-active"); controls.classList.add("hidden"); settings.classList.add("hidden"); exitBtn.style.display="block"; } catch(err){alert("Fullscreen no permitido."); console.log(err);} }
+function exitFullscreenMode(){ mainContent.classList.remove("fullscreen-active"); controls.classList.remove("hidden"); settings.classList.remove("hidden"); exitBtn.style.display="none"; if(document.fullscreenElement) document.exitFullscreen();}
 
-function resetTimer(){
-  running = false;
-  seconds = 0;
-  startPauseBtn.textContent = "Inicio";
-  lastUpdate = Date.now();
-  updateFirebase(seconds);
-}
-resetBtn.addEventListener("click", resetTimer);
-resetBtn.addEventListener("touchend", resetTimer);
-
-function stopTimer(){
-  running = false;
-  startPauseBtn.textContent = "Inicio";
-  lastUpdate = Date.now();
-  updateFirebase(seconds);
-}
-stopBtn.addEventListener("click", stopTimer);
-stopBtn.addEventListener("touchend", stopTimer);
-
-[limitInput,pauseColor,runColor,warningColor,overColor].forEach(el=>{
-  el.addEventListener("change", ()=> updateFirebase(seconds));
-});
+/* Agregar listeners */
+addTapListener(startPauseBtn, toggleStartPause);
+addTapListener(resetBtn, resetTimer);
+addTapListener(stopBtn, stopTimer);
+addTapListener(fullscreenBtn, enterFullscreen);
+addTapListener(exitBtn, exitFullscreenMode);
 
 /* Firebase sync */
 onValue(cronoref, snapshot=>{
   const data = snapshot.val();
   if(!data) return;
-
   running = data.running;
-  limit = data.limit * 60;
-
+  limit = data.limit*60;
   pauseColor.value = data.pauseColor;
   runColor.value = data.runColor;
   warningColor.value = data.warningColor;
   overColor.value = data.overColor;
-
-  if(running){
-    seconds = (Date.now() - data.lastUpdate)/1000 + data.seconds;
-  } else {
-    seconds = data.seconds;
-  }
-  startPauseBtn.textContent = running ? "Pausa" : "Inicio";
+  seconds = running ? (Date.now()-data.lastUpdate)/1000 + data.seconds : data.seconds;
+  startPauseBtn.textContent = running ? "Pausa":"Inicio";
   lastUpdate = Date.now();
 });
 
 /* Cronómetro en segundo plano */
-function tickRealTime() {
-  if (running) {
-    const now = Date.now();
-    seconds += (now - lastUpdate)/1000;
-    lastUpdate = now;
-  } else {
-    lastUpdate = Date.now();
-  }
+function tickRealTime(){
+  if(running){ const now = Date.now(); seconds+=(now-lastUpdate)/1000; lastUpdate=now; }
+  else lastUpdate=Date.now();
   updateDisplay(seconds, limit);
   requestAnimationFrame(tickRealTime);
 }
 tickRealTime();
 
-/* FULLSCREEN compatible */
-async function enterFullscreen(){
-  try {
-    const el = /Mobi|Android/i.test(navigator.userAgent) ? mainContent : document.documentElement;
-    if(el.requestFullscreen) await el.requestFullscreen();
-    else if(el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
-    mainContent.classList.add("fullscreen-active");
-    controls.classList.add("hidden");
-    settings.classList.add("hidden");
-    exitBtn.style.display = "block";
-  } catch(err){ console.log("Fullscreen error", err); }
-}
-
-fullscreenBtn.addEventListener("click", enterFullscreen);
-fullscreenBtn.addEventListener("touchend", enterFullscreen);
-
-function exitFullscreenMode(){
-  mainContent.classList.remove("fullscreen-active");
-  controls.classList.remove("hidden");
-  settings.classList.remove("hidden");
-  exitBtn.style.display = "none";
-  if(document.fullscreenElement) document.exitFullscreen();
-}
-
-exitBtn.addEventListener("click", exitFullscreenMode);
-exitBtn.addEventListener("touchend", exitFullscreenMode);
-
-document.addEventListener("fullscreenchange", ()=>{
-  if(!document.fullscreenElement) exitFullscreenMode();
-});
+/* Fullscreen cambio de estado */
+document.addEventListener("fullscreenchange", ()=>{if(!document.fullscreenElement) exitFullscreenMode();});
 </script>
-
 </body>
 </html>
