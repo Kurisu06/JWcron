@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Cronómetro Sincronizado</title>
+<title>Cronómetro</title>
 
 <style>
 html, body {
@@ -13,7 +13,7 @@ html, body {
   background: #0f172a;
   color: white;
   height: 100%;
-  touch-action: manipulation; /* Mejora interacción táctil */
+  touch-action: manipulation;
 }
 
 .container {
@@ -224,6 +224,7 @@ const settings = document.querySelector(".settings");
 
 let seconds = 0;
 let limit = parseInt(limitInput.value) * 60;
+let lastUpdate = Date.now();
 
 function formatTime(sec){
   const m = String(Math.floor(sec/60)).padStart(2,'0');
@@ -261,6 +262,7 @@ function updateFirebase(seconds){
 function toggleStartPause(){
   running = !running;
   startPauseBtn.textContent = running ? "Pausa" : "Inicio";
+  lastUpdate = Date.now(); // reiniciamos referencia de tiempo
   updateFirebase(seconds);
 }
 startPauseBtn.addEventListener("click", toggleStartPause);
@@ -270,6 +272,7 @@ function resetTimer(){
   running = false;
   seconds = 0;
   startPauseBtn.textContent = "Inicio";
+  lastUpdate = Date.now();
   updateFirebase(seconds);
 }
 resetBtn.addEventListener("click", resetTimer);
@@ -278,6 +281,7 @@ resetBtn.addEventListener("touchend", resetTimer);
 function stopTimer(){
   running = false;
   startPauseBtn.textContent = "Inicio";
+  lastUpdate = Date.now();
   updateFirebase(seconds);
 }
 stopBtn.addEventListener("click", stopTimer);
@@ -306,21 +310,29 @@ onValue(cronoref, snapshot=>{
     seconds = data.seconds;
   }
   startPauseBtn.textContent = running ? "Pausa" : "Inicio";
+  lastUpdate = Date.now();
 });
 
-/* Animación suave */
-function tick(){
-  if(running) seconds += 1/10; // incrementar cada 100ms
+/* Cronómetro en segundo plano */
+function tickRealTime() {
+  if (running) {
+    const now = Date.now();
+    seconds += (now - lastUpdate)/1000;
+    lastUpdate = now;
+  } else {
+    lastUpdate = Date.now();
+  }
   updateDisplay(seconds, limit);
-  requestAnimationFrame(tick);
+  requestAnimationFrame(tickRealTime);
 }
-tick();
+tickRealTime();
 
-/* FULLSCREEN */
+/* FULLSCREEN compatible */
 async function enterFullscreen(){
   try {
-    if(mainContent.requestFullscreen) await mainContent.requestFullscreen();
-    else if(mainContent.webkitRequestFullscreen) await mainContent.webkitRequestFullscreen();
+    const el = /Mobi|Android/i.test(navigator.userAgent) ? mainContent : document.documentElement;
+    if(el.requestFullscreen) await el.requestFullscreen();
+    else if(el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
     mainContent.classList.add("fullscreen-active");
     controls.classList.add("hidden");
     settings.classList.add("hidden");
