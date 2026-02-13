@@ -3,55 +3,119 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Cronómetro Remoto</title>
+<title>Cronómetro</title>
 
 <style>
 html, body {
-    margin: 0;
-    padding: 0;
-    font-family: 'Segoe UI', sans-serif;
-    background: #0f172a;
-    color: white;
-    height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: #0f172a;
+  color: white;
+  height: 100%;
 }
 
 .container {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 22px;
-    padding: 20px;
-    box-sizing: border-box;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 22px;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 .timer-box {
-    width: min(90vw, 600px);
-    height: clamp(120px, 20vw, 200px);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: clamp(60px, 10vw, 140px);
-    font-weight: 600;
-    border-radius: 20px;
-    background: #3f3f46;
-    letter-spacing: 6px;
-    transition: all 0.3s ease;
+  width: min(90vw, 600px);
+  height: clamp(120px, 20vw, 200px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: clamp(60px, 10vw, 140px);
+  font-weight: 600;
+  border-radius: 20px;
+  background: #3f3f46;
+  letter-spacing: 6px;
+  transition: all 0.3s ease;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+button, input {
+  background: #1e293b;
+  border: none;
+  color: white;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+button { cursor: pointer; }
+button:hover { background: #334155; }
+
+.hidden { display: none !important; }
+
+#exitFullscreenBtn {
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 26px;
+  opacity: 0.35;
+  cursor: pointer;
+  display: none;
+  z-index: 10000;
+}
+#exitFullscreenBtn:hover { opacity: 0.9; }
+
+.fullscreen-active {
+  position: fixed;
+  inset: 0;
+  background: #0f172a;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.fullscreen-active .timer-box {
+  width: 100vw !important;
+  height: 100vh !important;
+  border-radius: 0 !important;
+  font-size: clamp(120px, 20vw, 300px) !important;
 }
 </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="timer-box" id="timer">00:00</div>
+<button id="exitFullscreenBtn">←</button>
+
+<div class="container" id="mainContent">
+  <div class="timer-box" id="timer">00:00</div>
+
+  <div class="controls">
+    <button id="startPauseBtn">Inicio</button>
+    <button onclick="resetTimer()">Reiniciar</button>
+    <button onclick="stopTimer()">Stop</button>
+    <button onclick="toggleFullscreen()">Pantalla completa</button>
+  </div>
 </div>
 
+<!-- FIREBASE + CRONÓMETRO -->
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-/* 🔥 CONFIGURACIÓN DE FIREBASE (TUYA) */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+
+/* CONFIGURACIÓN */
 const firebaseConfig = {
   apiKey: "AIzaSyCQiHP9BhNw1u751b2Wu_hMqu7TBVHCWsU",
   authDomain: "crono-1f6e8.firebaseapp.com",
@@ -63,63 +127,104 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const timerRef = ref(db, "timer");
+const database = getDatabase(app);
+const cronoref = ref(database, "cronometro");
 
 /* VARIABLES */
 let seconds = 0;
 let running = false;
-let limit = 5;
 let interval = null;
+let lastUpdate = Date.now();
 
 const timerBox = document.getElementById("timer");
+const startPauseBtn = document.getElementById("startPauseBtn");
+const mainContent = document.getElementById("mainContent");
+const exitBtn = document.getElementById("exitFullscreenBtn");
 
-/* FORMATO */
-function formatTime() {
-    const m = String(Math.floor(seconds / 60)).padStart(2,'0');
-    const s = String(seconds % 60).padStart(2,'0');
-    return `${m}:${s}`;
-}
-
-function updateColor() {
-    if (!running) timerBox.style.background = "#3f3f46";
-    else if (seconds >= limit * 60) timerBox.style.background = "#dc2626";
-    else if (seconds >= (limit * 60) - 30) timerBox.style.background = "#f59e0b";
-    else timerBox.style.background = "#16a34a";
+/* FORMATEAR */
+function formatTime(sec) {
+  const m = String(Math.floor(sec / 60)).padStart(2,'0');
+  const s = String(sec % 60).padStart(2,'0');
+  return `${m}:${s}`;
 }
 
 function updateDisplay() {
-    timerBox.textContent = formatTime();
-    updateColor();
+  timerBox.textContent = formatTime(seconds);
 }
 
-/* ESCUCHAR CAMBIOS REMOTOS */
-onValue(timerRef, (snapshot) => {
-    const data = snapshot.val();
-    if (!data) return;
+/* SINCRONIZAR CON FIREBASE */
+function updateFirebase() {
+  set(cronoref, {
+    seconds: seconds,
+    running: running,
+    lastUpdate: Date.now()
+  });
+}
 
-    seconds = data.seconds || 0;
-    running = data.running || false;
-    limit = data.limit || 5;
+/* BOTÓN START/PAUSA */
+startPauseBtn.addEventListener("click", () => {
+  running = !running;
+  startPauseBtn.textContent = running ? "Pausa" : "Inicio";
+  updateFirebase();
+});
 
-    if (running && !interval) {
-        interval = setInterval(() => {
-            seconds++;
-            set(timerRef, { seconds, running, limit });
-            updateDisplay();
-        }, 1000);
-    }
+/* REINICIAR */
+window.resetTimer = function() {
+  seconds = 0;
+  running = false;
+  startPauseBtn.textContent = "Inicio";
+  updateFirebase();
+}
 
-    if (!running && interval) {
-        clearInterval(interval);
-        interval = null;
-    }
+/* STOP */
+window.stopTimer = function() {
+  seconds = 0;
+  running = false;
+  startPauseBtn.textContent = "Inicio";
+  updateFirebase();
+}
 
+/* ESCUCHAR CAMBIOS */
+onValue(cronoref, (snapshot) => {
+  const data = snapshot.val();
+  if (!data) return;
+
+  running = data.running;
+  seconds = data.seconds;
+
+  if (running) {
+    const now = Date.now();
+    const diff = Math.floor((now - data.lastUpdate) / 1000);
+    seconds += diff;
+  }
+
+  startPauseBtn.textContent = running ? "Pausa" : "Inicio";
+  updateDisplay();
+});
+
+/* INTERVALO LOCAL SUAVE */
+setInterval(() => {
+  if (running) {
+    seconds++;
     updateDisplay();
+  }
+}, 1000);
+
+/* FULLSCREEN */
+window.toggleFullscreen = function() {
+  mainContent.classList.add("fullscreen-active");
+  document.documentElement.requestFullscreen().catch(()=>{});
+  exitBtn.style.display = "block";
+}
+
+exitBtn.addEventListener("click", () => {
+  mainContent.classList.remove("fullscreen-active");
+  document.exitFullscreen().catch(()=>{});
+  exitBtn.style.display = "none";
 });
 
 updateDisplay();
-</script>
 
+</script>
 </body>
 </html>
