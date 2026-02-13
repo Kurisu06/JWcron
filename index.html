@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Cronómetro</title>
+<title>Cronómetro Sincronizado</title>
 
 <style>
 html, body {
@@ -108,13 +108,13 @@ input[type="color"] {
   background: none;
   border: none;
   color: white;
-  font-size: 26px;
-  opacity: 0.35;
+  font-size: 28px;
+  opacity: 0.5;
   cursor: pointer;
   display: none;
   z-index: 10000;
 }
-#exitFullscreenBtn:hover { opacity: 0.9; }
+#exitFullscreenBtn:hover { opacity: 1; }
 
 .fullscreen-active {
   position: fixed;
@@ -198,7 +198,6 @@ const cronoref = ref(database, "cronometro");
 
 let seconds = 0;
 let running = false;
-let interval = null;
 
 const timerBox = document.getElementById("timer");
 const startPauseBtn = document.getElementById("startPauseBtn");
@@ -298,6 +297,44 @@ setInterval(()=>{
     updateDisplay();
   }
 },1000);
+
+/* FULLSCREEN COMPLETO */
+const mainContent = document.getElementById("mainContent");
+const exitBtn = document.getElementById("exitFullscreenBtn");
+const controls = document.querySelector(".controls");
+const settings = document.querySelector(".settings");
+
+window.toggleFullscreen = async function () {
+  try {
+    await document.documentElement.requestFullscreen();
+
+    mainContent.classList.add("fullscreen-active");
+    controls.classList.add("hidden");
+    settings.classList.add("hidden");
+
+    exitBtn.style.display = "block";
+  } catch (err) {}
+};
+
+function exitFullscreenMode() {
+  mainContent.classList.remove("fullscreen-active");
+  controls.classList.remove("hidden");
+  settings.classList.remove("hidden");
+  exitBtn.style.display = "none";
+}
+
+exitBtn.addEventListener("click", async () => {
+  if (document.fullscreenElement) {
+    await document.exitFullscreen();
+  }
+  exitFullscreenMode();
+});
+
+document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement) {
+    exitFullscreenMode();
+  }
+});
 
 updateDisplay();
 
