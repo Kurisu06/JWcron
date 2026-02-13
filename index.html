@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Cronómetro</title>
+<title>Cronómetro Sincronizado</title>
 
 <style>
 html, body {
@@ -144,9 +144,9 @@ input[type="color"] {
 
   <div class="controls">
     <button id="startPauseBtn">Inicio</button>
-    <button onclick="resetTimer()">Reiniciar</button>
-    <button onclick="stopTimer()">Stop</button>
-    <button onclick="toggleFullscreen()">Pantalla completa</button>
+    <button id="resetBtn">Reiniciar</button>
+    <button id="stopBtn">Stop</button>
+    <button id="fullscreenBtn">Pantalla completa</button>
   </div>
 
   <div class="settings">
@@ -178,7 +178,6 @@ input[type="color"] {
 </div>
 
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
@@ -196,17 +195,23 @@ const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 const cronoref = ref(database, "cronometro");
 
-let seconds = 0;
 let running = false;
 
 const timerBox = document.getElementById("timer");
 const startPauseBtn = document.getElementById("startPauseBtn");
+const resetBtn = document.getElementById("resetBtn");
+const stopBtn = document.getElementById("stopBtn");
+const fullscreenBtn = document.getElementById("fullscreenBtn");
 const limitInput = document.getElementById("limitInput");
-
 const pauseColor = document.getElementById("pauseColor");
 const runColor = document.getElementById("runColor");
 const warningColor = document.getElementById("warningColor");
 const overColor = document.getElementById("overColor");
+
+const mainContent = document.getElementById("mainContent");
+const exitBtn = document.getElementById("exitFullscreenBtn");
+const controls = document.querySelector(".controls");
+const settings = document.querySelector(".settings");
 
 function formatTime(sec){
   const m = String(Math.floor(sec/60)).padStart(2,'0');
@@ -214,30 +219,20 @@ function formatTime(sec){
   return `${m}:${s}`;
 }
 
-function updateColor(){
-  const limit = limitInput.value * 60;
+function updateColor(seconds, limit){
   const warningTime = limit - 90;
-
-  if(!running){
-    timerBox.style.background = pauseColor.value;
-  }
-  else if(seconds >= limit){
-    timerBox.style.background = overColor.value;
-  }
-  else if(seconds >= warningTime){
-    timerBox.style.background = warningColor.value;
-  }
-  else{
-    timerBox.style.background = runColor.value;
-  }
+  if(!running) timerBox.style.background = pauseColor.value;
+  else if(seconds >= limit) timerBox.style.background = overColor.value;
+  else if(seconds >= warningTime) timerBox.style.background = warningColor.value;
+  else timerBox.style.background = runColor.value;
 }
 
-function updateDisplay(){
-  timerBox.textContent = formatTime(seconds);
-  updateColor();
+function updateDisplay(seconds, limit){
+  timerBox.textContent = formatTime(Math.floor(seconds));
+  updateColor(seconds, limit);
 }
 
-function updateFirebase(){
+function updateFirebase(seconds){
   set(cronoref,{
     seconds,
     running,
@@ -250,95 +245,86 @@ function updateFirebase(){
   });
 }
 
+/* Eventos de botones */
 startPauseBtn.addEventListener("click",()=>{
-  running=!running;
+  running = !running;
   startPauseBtn.textContent = running ? "Pausa":"Inicio";
-  updateFirebase();
+  updateFirebase(0);
 });
 
-window.resetTimer = function(){
-  seconds=0;
+resetBtn.addEventListener("click",()=>{
   running=false;
   startPauseBtn.textContent="Inicio";
-  updateFirebase();
-}
+  updateFirebase(0);
+});
 
-window.stopTimer = window.resetTimer;
+stopBtn.addEventListener("click",()=>{
+  running=false;
+  startPauseBtn.textContent="Inicio";
+  updateFirebase(0);
+});
 
 [limitInput,pauseColor,runColor,warningColor,overColor].forEach(el=>{
-  el.addEventListener("change",updateFirebase);
+  el.addEventListener("change",()=>updateFirebase(0));
 });
+
+/* Sincronización con Firebase */
+let seconds = 0;
+let limit = parseInt(limitInput.value)*60;
 
 onValue(cronoref,(snapshot)=>{
-  const data=snapshot.val();
+  const data = snapshot.val();
   if(!data) return;
 
-  seconds=data.seconds;
-  running=data.running;
+  running = data.running;
+  limit = data.limit*60;
 
-  limitInput.value=data.limit;
-  pauseColor.value=data.pauseColor;
-  runColor.value=data.runColor;
-  warningColor.value=data.warningColor;
-  overColor.value=data.overColor;
+  pauseColor.value = data.pauseColor;
+  runColor.value = data.runColor;
+  warningColor.value = data.warningColor;
+  overColor.value = data.overColor;
 
+  // Calcular tiempo exacto desde lastUpdate
   if(running){
-    const diff=Math.floor((Date.now()-data.lastUpdate)/1000);
-    seconds+=diff;
+    seconds = (Date.now() - data.lastUpdate)/1000 + data.seconds;
+  } else {
+    seconds = data.seconds;
   }
-
   startPauseBtn.textContent = running ? "Pausa":"Inicio";
-  updateDisplay();
 });
 
+/* Actualizar pantalla cada 100ms para que se vea fluido */
 setInterval(()=>{
-  if(running){
-    seconds++;
-    updateDisplay();
-  }
-},1000);
+  updateDisplay(seconds, limit);
+},100);
 
-/* FULLSCREEN COMPLETO */
-const mainContent = document.getElementById("mainContent");
-const exitBtn = document.getElementById("exitFullscreenBtn");
-const controls = document.querySelector(".controls");
-const settings = document.querySelector(".settings");
-
-window.toggleFullscreen = async function () {
+/* FULLSCREEN */
+fullscreenBtn.addEventListener("click", async () => {
   try {
     await document.documentElement.requestFullscreen();
-
     mainContent.classList.add("fullscreen-active");
     controls.classList.add("hidden");
     settings.classList.add("hidden");
-
     exitBtn.style.display = "block";
-  } catch (err) {}
-};
+  } catch(err){ console.log("Fullscreen no permitido", err); }
+});
 
-function exitFullscreenMode() {
+function exitFullscreenMode(){
   mainContent.classList.remove("fullscreen-active");
   controls.classList.remove("hidden");
   settings.classList.remove("hidden");
   exitBtn.style.display = "none";
 }
 
-exitBtn.addEventListener("click", async () => {
-  if (document.fullscreenElement) {
-    await document.exitFullscreen();
-  }
+exitBtn.addEventListener("click", async ()=>{
+  if(document.fullscreenElement) await document.exitFullscreen();
   exitFullscreenMode();
 });
 
-document.addEventListener("fullscreenchange", () => {
-  if (!document.fullscreenElement) {
-    exitFullscreenMode();
-  }
+document.addEventListener("fullscreenchange",()=>{
+  if(!document.fullscreenElement) exitFullscreenMode();
 });
-
-updateDisplay();
 
 </script>
 </body>
 </html>
-
