@@ -13,6 +13,7 @@ html, body {
   background: #0f172a;
   color: white;
   height: 100%;
+  touch-action: manipulation; /* Mejora interacción táctil */
 }
 
 .container {
@@ -51,9 +52,10 @@ button, input {
   background: #1e293b;
   border: none;
   color: white;
-  padding: 10px 16px;
+  padding: 14px 20px;
   border-radius: 10px;
-  font-size: 14px;
+  font-size: 16px;
+  user-select: none;
 }
 
 button { cursor: pointer; }
@@ -131,6 +133,13 @@ input[type="color"] {
   height: 100vh !important;
   border-radius: 0 !important;
   font-size: clamp(120px, 20vw, 300px) !important;
+}
+
+@media (max-width: 600px){
+  button, input {
+    font-size: 18px;
+    padding: 16px 24px;
+  }
 }
 </style>
 </head>
@@ -213,9 +222,12 @@ const exitBtn = document.getElementById("exitFullscreenBtn");
 const controls = document.querySelector(".controls");
 const settings = document.querySelector(".settings");
 
+let seconds = 0;
+let limit = parseInt(limitInput.value) * 60;
+
 function formatTime(sec){
   const m = String(Math.floor(sec/60)).padStart(2,'0');
-  const s = String(sec%60).padStart(2,'0');
+  const s = String(Math.floor(sec%60)).padStart(2,'0');
   return `${m}:${s}`;
 }
 
@@ -228,7 +240,7 @@ function updateColor(seconds, limit){
 }
 
 function updateDisplay(seconds, limit){
-  timerBox.textContent = formatTime(Math.floor(seconds));
+  timerBox.textContent = formatTime(seconds);
   updateColor(seconds, limit);
 }
 
@@ -245,86 +257,95 @@ function updateFirebase(seconds){
   });
 }
 
-/* Eventos de botones */
-startPauseBtn.addEventListener("click",()=>{
+/* Botones */
+function toggleStartPause(){
   running = !running;
-  startPauseBtn.textContent = running ? "Pausa":"Inicio";
-  updateFirebase(0);
-});
+  startPauseBtn.textContent = running ? "Pausa" : "Inicio";
+  updateFirebase(seconds);
+}
+startPauseBtn.addEventListener("click", toggleStartPause);
+startPauseBtn.addEventListener("touchend", toggleStartPause);
 
-resetBtn.addEventListener("click",()=>{
-  running=false;
-  startPauseBtn.textContent="Inicio";
-  updateFirebase(0);
-});
+function resetTimer(){
+  running = false;
+  seconds = 0;
+  startPauseBtn.textContent = "Inicio";
+  updateFirebase(seconds);
+}
+resetBtn.addEventListener("click", resetTimer);
+resetBtn.addEventListener("touchend", resetTimer);
 
-stopBtn.addEventListener("click",()=>{
-  running=false;
-  startPauseBtn.textContent="Inicio";
-  updateFirebase(0);
-});
+function stopTimer(){
+  running = false;
+  startPauseBtn.textContent = "Inicio";
+  updateFirebase(seconds);
+}
+stopBtn.addEventListener("click", stopTimer);
+stopBtn.addEventListener("touchend", stopTimer);
 
 [limitInput,pauseColor,runColor,warningColor,overColor].forEach(el=>{
-  el.addEventListener("change",()=>updateFirebase(0));
+  el.addEventListener("change", ()=> updateFirebase(seconds));
 });
 
-/* Sincronización con Firebase */
-let seconds = 0;
-let limit = parseInt(limitInput.value)*60;
-
-onValue(cronoref,(snapshot)=>{
+/* Firebase sync */
+onValue(cronoref, snapshot=>{
   const data = snapshot.val();
   if(!data) return;
 
   running = data.running;
-  limit = data.limit*60;
+  limit = data.limit * 60;
 
   pauseColor.value = data.pauseColor;
   runColor.value = data.runColor;
   warningColor.value = data.warningColor;
   overColor.value = data.overColor;
 
-  // Calcular tiempo exacto desde lastUpdate
   if(running){
     seconds = (Date.now() - data.lastUpdate)/1000 + data.seconds;
   } else {
     seconds = data.seconds;
   }
-  startPauseBtn.textContent = running ? "Pausa":"Inicio";
+  startPauseBtn.textContent = running ? "Pausa" : "Inicio";
 });
 
-/* Actualizar pantalla cada 100ms para que se vea fluido */
-setInterval(()=>{
+/* Animación suave */
+function tick(){
+  if(running) seconds += 1/10; // incrementar cada 100ms
   updateDisplay(seconds, limit);
-},100);
+  requestAnimationFrame(tick);
+}
+tick();
 
 /* FULLSCREEN */
-fullscreenBtn.addEventListener("click", async () => {
+async function enterFullscreen(){
   try {
-    await document.documentElement.requestFullscreen();
+    if(mainContent.requestFullscreen) await mainContent.requestFullscreen();
+    else if(mainContent.webkitRequestFullscreen) await mainContent.webkitRequestFullscreen();
     mainContent.classList.add("fullscreen-active");
     controls.classList.add("hidden");
     settings.classList.add("hidden");
     exitBtn.style.display = "block";
-  } catch(err){ console.log("Fullscreen no permitido", err); }
-});
+  } catch(err){ console.log("Fullscreen error", err); }
+}
+
+fullscreenBtn.addEventListener("click", enterFullscreen);
+fullscreenBtn.addEventListener("touchend", enterFullscreen);
 
 function exitFullscreenMode(){
   mainContent.classList.remove("fullscreen-active");
   controls.classList.remove("hidden");
   settings.classList.remove("hidden");
   exitBtn.style.display = "none";
+  if(document.fullscreenElement) document.exitFullscreen();
 }
 
-exitBtn.addEventListener("click", async ()=>{
-  if(document.fullscreenElement) await document.exitFullscreen();
-  exitFullscreenMode();
-});
+exitBtn.addEventListener("click", exitFullscreenMode);
+exitBtn.addEventListener("touchend", exitFullscreenMode);
 
-document.addEventListener("fullscreenchange",()=>{
+document.addEventListener("fullscreenchange", ()=>{
   if(!document.fullscreenElement) exitFullscreenMode();
 });
-
 </script>
+
 </body>
 </html>
