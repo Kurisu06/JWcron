@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Control Cronómetro</title>
+</head>
+<body style="font-family:sans-serif; text-align:center; padding:40px; background:#0f172a; color:white;">
+
+<h2>Control Remoto</h2>
+
+<input type="number" id="limit" value="5" min="1" style="padding:10px; width:100px;">
+<br><br>
+
+<button onclick="start()">Iniciar</button>
+<button onclick="pause()">Pausa</button>
+<button onclick="reset()">Reset</button>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCQiHP9BhNw1u751b2Wu_hMqu7TBVHCWsU",
+  authDomain: "crono-1f6e8.firebaseapp.com",
+  databaseURL: "https://crono-1f6e8-default-rtdb.firebaseio.com",
+  projectId: "crono-1f6e8",
+  storageBucket: "crono-1f6e8.firebasestorage.app",
+  messagingSenderId: "685487663087",
+  appId: "1:685487663087:web:980c13ec43d8807fcaf81a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const timerRef = ref(db, "timer");
+
+function start(){
+    set(timerRef, {
+        running: true,
+        seconds: 0,
+        limit: document.getElementById("limit").value
+    });
+}
+
+function pause(){
+    set(timerRef, {
+        running: false,
+        seconds: 0,
+        limit: document.getElementById("limit").value
+    });
+}
+
+function reset(){
+    set(timerRef, {
+        running: false,
+        seconds: 0,
+        limit: document.getElementById("limit").value
+    });
+}
+</script>
+
+</body>
+</html>
