@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Cronómetro</title>
+<title>Cronómetro Remoto</title>
 
 <style>
 html, body {
@@ -15,7 +15,6 @@ html, body {
     height: 100%;
 }
 
-/* CONTENEDOR */
 .container {
     min-height: 100vh;
     display: flex;
@@ -27,7 +26,6 @@ html, body {
     box-sizing: border-box;
 }
 
-/* RECTÁNGULO DEL CRONÓMETRO */
 .timer-box {
     width: min(90vw, 600px);
     height: clamp(120px, 20vw, 200px);
@@ -41,185 +39,42 @@ html, body {
     letter-spacing: 6px;
     transition: all 0.3s ease;
 }
-
-/* CONTROLES */
-.controls {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-
-button, input {
-    background: #1e293b;
-    border: none;
-    color: white;
-    padding: 10px 16px;
-    border-radius: 10px;
-    font-size: 14px;
-}
-
-button {
-    cursor: pointer;
-    transition: 0.2s ease;
-}
-
-button:hover {
-    background: #334155;
-}
-
-/* CONFIGURACIÓN */
-.settings {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    align-items: center;
-    width: 100%;
-    max-width: 380px;
-}
-
-.limit-control {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-/* CONTROLES DE COLOR */
-.color-controls {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    width: 100%;
-}
-
-.color-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #1e293b;
-    padding: 8px 12px;
-    border-radius: 12px;
-}
-
-.color-item span {
-    font-size: 13px;
-    opacity: 0.9;
-}
-
-/* INPUT COLOR */
-input[type="color"] {
-    width: 42px;
-    height: 32px;
-    border: none;
-    border-radius: 6px;
-    padding: 0;
-    cursor: pointer;
-}
-
-/* FULLSCREEN */
-.fullscreen-active {
-    position: fixed;
-    inset: 0;
-    background: #0f172a;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-}
-
-.fullscreen-active .timer-box {
-    width: 100vw !important;
-    height: 100vh !important;
-    border-radius: 0 !important;
-    font-size: clamp(120px, 20vw, 300px) !important;
-}
-
-/* BOTÓN SALIR */
-#exitFullscreenBtn {
-    position: fixed;
-    top: 15px;
-    left: 15px;
-    background: none;
-    border: none;
-    color: white;
-    font-size: 26px;
-    opacity: 0.35;
-    cursor: pointer;
-    display: none;
-    z-index: 10000;
-}
-
-#exitFullscreenBtn:hover {
-    opacity: 0.9;
-}
-
-.hidden {
-    display: none !important;
-}
 </style>
 </head>
 <body>
 
-<button id="exitFullscreenBtn">←</button>
-
-<div class="container" id="mainContent">
-
+<div class="container">
     <div class="timer-box" id="timer">00:00</div>
-
-    <div class="controls">
-        <button id="startPauseBtn">Inicio</button>
-        <button onclick="resetTimer()">Reiniciar</button>
-        <button onclick="stopTimer()">Stop</button>
-        <button onclick="toggleFullscreen()">Pantalla completa</button>
-    </div>
-
-    <div class="settings">
-
-        <div class="limit-control">
-            <span>Tiempo límite (min)</span>
-            <input type="number" id="limitInput" value="5" min="1" style="width:70px;">
-        </div>
-
-        <div class="color-controls">
-
-            <div class="color-item">
-                <span>Color en pausa</span>
-                <input type="color" id="pauseColor" value="#3f3f46">
-            </div>
-
-            <div class="color-item">
-                <span>Color en movimiento</span>
-                <input type="color" id="runColor" value="#16a34a">
-            </div>
-
-            <div class="color-item">
-                <span>Color advertencia</span>
-                <input type="color" id="warningColor" value="#f59e0b">
-            </div>
-
-            <div class="color-item">
-                <span>Tiempo excedido</span>
-                <input type="color" id="overColor" value="#dc2626">
-            </div>
-
-        </div>
-
-    </div>
-
 </div>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+/* 🔥 CONFIGURACIÓN DE FIREBASE (TUYA) */
+const firebaseConfig = {
+  apiKey: "AIzaSyCQiHP9BhNw1u751b2Wu_hMqu7TBVHCWsU",
+  authDomain: "crono-1f6e8.firebaseapp.com",
+  databaseURL: "https://crono-1f6e8-default-rtdb.firebaseio.com",
+  projectId: "crono-1f6e8",
+  storageBucket: "crono-1f6e8.firebasestorage.app",
+  messagingSenderId: "685487663087",
+  appId: "1:685487663087:web:980c13ec43d8807fcaf81a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const timerRef = ref(db, "timer");
+
+/* VARIABLES */
 let seconds = 0;
 let running = false;
-let interval;
-let fullscreenActive = false;
+let limit = 5;
+let interval = null;
 
 const timerBox = document.getElementById("timer");
-const mainContent = document.getElementById("mainContent");
-const exitBtn = document.getElementById("exitFullscreenBtn");
-const startPauseBtn = document.getElementById("startPauseBtn");
 
-/* FORMATEAR TIEMPO */
+/* FORMATO */
 function formatTime() {
     const m = String(Math.floor(seconds / 60)).padStart(2,'0');
     const s = String(seconds % 60).padStart(2,'0');
@@ -227,20 +82,10 @@ function formatTime() {
 }
 
 function updateColor() {
-    const limit = document.getElementById("limitInput").value * 60;
-    const pauseColor = document.getElementById("pauseColor").value;
-    const runColor = document.getElementById("runColor").value;
-    const warningColor = document.getElementById("warningColor").value;
-    const overColor = document.getElementById("overColor").value;
-
-    let color;
-
-    if (!running) color = pauseColor;
-    else if (seconds >= limit) color = overColor;
-    else if (seconds >= limit - 30) color = warningColor;
-    else color = runColor;
-
-    timerBox.style.background = color;
+    if (!running) timerBox.style.background = "#3f3f46";
+    else if (seconds >= limit * 60) timerBox.style.background = "#dc2626";
+    else if (seconds >= (limit * 60) - 30) timerBox.style.background = "#f59e0b";
+    else timerBox.style.background = "#16a34a";
 }
 
 function updateDisplay() {
@@ -248,63 +93,29 @@ function updateDisplay() {
     updateColor();
 }
 
-/* START / PAUSA TOGGLE */
-startPauseBtn.addEventListener("click", () => {
-    if (!running) {
-        running = true;
-        startPauseBtn.textContent = "Pausa";
+/* ESCUCHAR CAMBIOS REMOTOS */
+onValue(timerRef, (snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
+
+    seconds = data.seconds || 0;
+    running = data.running || false;
+    limit = data.limit || 5;
+
+    if (running && !interval) {
         interval = setInterval(() => {
             seconds++;
+            set(timerRef, { seconds, running, limit });
             updateDisplay();
         }, 1000);
-    } else {
-        running = false;
-        startPauseBtn.textContent = "Inicio";
+    }
+
+    if (!running && interval) {
         clearInterval(interval);
+        interval = null;
     }
-});
 
-function resetTimer() {
-    running = false;
-    clearInterval(interval);
-    seconds = 0;
-    startPauseBtn.textContent = "Inicio";
     updateDisplay();
-}
-
-function stopTimer() {
-    running = false;
-    clearInterval(interval);
-    seconds = 0;
-    startPauseBtn.textContent = "Inicio";
-    updateDisplay();
-}
-
-/* FULLSCREEN */
-function toggleFullscreen() {
-    if (!fullscreenActive) {
-        fullscreenActive = true;
-        mainContent.classList.add("fullscreen-active");
-        mainContent.querySelectorAll(".controls, .settings").forEach(e => e.classList.add("hidden"));
-        exitBtn.style.display = "block";
-        document.body.style.overflow = "hidden";
-
-        if (document.documentElement.requestFullscreen) {
-            document.documentElement.requestFullscreen().catch(()=>{});
-        }
-    }
-}
-
-exitBtn.addEventListener("click", () => {
-    fullscreenActive = false;
-    mainContent.classList.remove("fullscreen-active");
-    mainContent.querySelectorAll(".controls, .settings").forEach(e => e.classList.remove("hidden"));
-    exitBtn.style.display = "none";
-    document.body.style.overflow = "auto";
-
-    if (document.exitFullscreen) {
-        document.exitFullscreen().catch(()=>{});
-    }
 });
 
 updateDisplay();
