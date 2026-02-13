@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Cronómetro</title>
+<title>Cronómetro Sincronizado</title>
 
 <style>
 html, body {
@@ -59,6 +59,46 @@ button, input {
 button { cursor: pointer; }
 button:hover { background: #334155; }
 
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  width: 100%;
+  max-width: 380px;
+}
+
+.limit-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.color-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.color-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #1e293b;
+  padding: 8px 12px;
+  border-radius: 12px;
+}
+
+input[type="color"] {
+  width: 42px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  padding: 0;
+  cursor: pointer;
+}
+
 .hidden { display: none !important; }
 
 #exitFullscreenBtn {
@@ -99,6 +139,7 @@ button:hover { background: #334155; }
 <button id="exitFullscreenBtn">←</button>
 
 <div class="container" id="mainContent">
+
   <div class="timer-box" id="timer">00:00</div>
 
   <div class="controls">
@@ -107,15 +148,40 @@ button:hover { background: #334155; }
     <button onclick="stopTimer()">Stop</button>
     <button onclick="toggleFullscreen()">Pantalla completa</button>
   </div>
+
+  <div class="settings">
+    <div class="limit-control">
+      <span>Tiempo límite (min)</span>
+      <input type="number" id="limitInput" value="5" min="1" style="width:70px;">
+    </div>
+
+    <div class="color-controls">
+      <div class="color-item">
+        <span>Color en pausa</span>
+        <input type="color" id="pauseColor" value="#3f3f46">
+      </div>
+      <div class="color-item">
+        <span>Color en movimiento</span>
+        <input type="color" id="runColor" value="#16a34a">
+      </div>
+      <div class="color-item">
+        <span>Color advertencia</span>
+        <input type="color" id="warningColor" value="#f59e0b">
+      </div>
+      <div class="color-item">
+        <span>Tiempo excedido</span>
+        <input type="color" id="overColor" value="#dc2626">
+      </div>
+    </div>
+  </div>
+
 </div>
 
-<!-- FIREBASE + CRONÓMETRO -->
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
-/* CONFIGURACIÓN */
 const firebaseConfig = {
   apiKey: "AIzaSyCQiHP9BhNw1u751b2Wu_hMqu7TBVHCWsU",
   authDomain: "crono-1f6e8.firebaseapp.com",
@@ -130,98 +196,108 @@ const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 const cronoref = ref(database, "cronometro");
 
-/* VARIABLES */
 let seconds = 0;
 let running = false;
 let interval = null;
-let lastUpdate = Date.now();
 
 const timerBox = document.getElementById("timer");
 const startPauseBtn = document.getElementById("startPauseBtn");
-const mainContent = document.getElementById("mainContent");
-const exitBtn = document.getElementById("exitFullscreenBtn");
+const limitInput = document.getElementById("limitInput");
 
-/* FORMATEAR */
-function formatTime(sec) {
-  const m = String(Math.floor(sec / 60)).padStart(2,'0');
-  const s = String(sec % 60).padStart(2,'0');
+const pauseColor = document.getElementById("pauseColor");
+const runColor = document.getElementById("runColor");
+const warningColor = document.getElementById("warningColor");
+const overColor = document.getElementById("overColor");
+
+function formatTime(sec){
+  const m = String(Math.floor(sec/60)).padStart(2,'0');
+  const s = String(sec%60).padStart(2,'0');
   return `${m}:${s}`;
 }
 
-function updateDisplay() {
-  timerBox.textContent = formatTime(seconds);
+function updateColor(){
+  const limit = limitInput.value * 60;
+  const warningTime = limit - 90;
+
+  if(!running){
+    timerBox.style.background = pauseColor.value;
+  }
+  else if(seconds >= limit){
+    timerBox.style.background = overColor.value;
+  }
+  else if(seconds >= warningTime){
+    timerBox.style.background = warningColor.value;
+  }
+  else{
+    timerBox.style.background = runColor.value;
+  }
 }
 
-/* SINCRONIZAR CON FIREBASE */
-function updateFirebase() {
-  set(cronoref, {
-    seconds: seconds,
-    running: running,
+function updateDisplay(){
+  timerBox.textContent = formatTime(seconds);
+  updateColor();
+}
+
+function updateFirebase(){
+  set(cronoref,{
+    seconds,
+    running,
+    limit: limitInput.value,
+    pauseColor: pauseColor.value,
+    runColor: runColor.value,
+    warningColor: warningColor.value,
+    overColor: overColor.value,
     lastUpdate: Date.now()
   });
 }
 
-/* BOTÓN START/PAUSA */
-startPauseBtn.addEventListener("click", () => {
-  running = !running;
-  startPauseBtn.textContent = running ? "Pausa" : "Inicio";
+startPauseBtn.addEventListener("click",()=>{
+  running=!running;
+  startPauseBtn.textContent = running ? "Pausa":"Inicio";
   updateFirebase();
 });
 
-/* REINICIAR */
-window.resetTimer = function() {
-  seconds = 0;
-  running = false;
-  startPauseBtn.textContent = "Inicio";
+window.resetTimer = function(){
+  seconds=0;
+  running=false;
+  startPauseBtn.textContent="Inicio";
   updateFirebase();
 }
 
-/* STOP */
-window.stopTimer = function() {
-  seconds = 0;
-  running = false;
-  startPauseBtn.textContent = "Inicio";
-  updateFirebase();
-}
+window.stopTimer = window.resetTimer;
 
-/* ESCUCHAR CAMBIOS */
-onValue(cronoref, (snapshot) => {
-  const data = snapshot.val();
-  if (!data) return;
+[limitInput,pauseColor,runColor,warningColor,overColor].forEach(el=>{
+  el.addEventListener("change",updateFirebase);
+});
 
-  running = data.running;
-  seconds = data.seconds;
+onValue(cronoref,(snapshot)=>{
+  const data=snapshot.val();
+  if(!data) return;
 
-  if (running) {
-    const now = Date.now();
-    const diff = Math.floor((now - data.lastUpdate) / 1000);
-    seconds += diff;
+  seconds=data.seconds;
+  running=data.running;
+
+  limitInput.value=data.limit;
+  pauseColor.value=data.pauseColor;
+  runColor.value=data.runColor;
+  warningColor.value=data.warningColor;
+  overColor.value=data.overColor;
+
+  if(running){
+    const diff=Math.floor((Date.now()-data.lastUpdate)/1000);
+    seconds+=diff;
   }
 
-  startPauseBtn.textContent = running ? "Pausa" : "Inicio";
+  startPauseBtn.textContent = running ? "Pausa":"Inicio";
   updateDisplay();
 });
 
-/* INTERVALO LOCAL SUAVE */
-setInterval(() => {
-  if (running) {
+setInterval(()=>{
+  if(running){
     seconds++;
     updateDisplay();
   }
-}, 1000);
-
-/* FULLSCREEN */
-window.toggleFullscreen = function() {
-  mainContent.classList.add("fullscreen-active");
-  document.documentElement.requestFullscreen().catch(()=>{});
-  exitBtn.style.display = "block";
-}
-
-exitBtn.addEventListener("click", () => {
-  mainContent.classList.remove("fullscreen-active");
-  document.exitFullscreen().catch(()=>{});
-  exitBtn.style.display = "none";
-});
+},1000);
 
 updateDisplay();
 
