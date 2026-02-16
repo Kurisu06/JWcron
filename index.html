@@ -14,50 +14,6 @@ html, body {
   color: white;
   height: 100%;
 }
-
-/* BOTÓN FULLSCREEN */
-.fullscreen-btn {
-  position: fixed;
-  top: 15px;
-  right: 15px;
-  z-index: 1000;
-  background: rgba(255,255,255,0.1);
-  backdrop-filter: blur(6px);
-  border: none;
-  color: white;
-  padding: 10px 16px;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.fullscreen-btn:hover {
-  background: rgba(255,255,255,0.2);
-}
-
-/* FLECHA SALIR */
-.exit-fullscreen {
-  position: fixed;
-  top: 15px;
-  left: 15px;
-  z-index: 2000;
-  font-size: 28px;
-  background: rgba(0,0,0,0.25);
-  backdrop-filter: blur(6px);
-  border-radius: 50%;
-  width: 44px;
-  height: 44px;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  user-select: none;
-}
-
-.exit-fullscreen:hover {
-  background: rgba(0,0,0,0.5);
-}
-
 .container {
   min-height: 100vh;
   display: flex;
@@ -68,7 +24,6 @@ html, body {
   padding: 20px;
   box-sizing: border-box;
 }
-
 .timer-box {
   width: min(90vw, 600px);
   height: clamp(120px, 20vw, 200px);
@@ -80,43 +35,13 @@ html, body {
   border-radius: 20px;
   background: #3f3f46;
   letter-spacing: 6px;
-  transition: all 0.3s ease;
 }
-
-.controls, .settings {
+.controls {
   display: flex;
-}
-
-.settings {
-  flex-direction: column;
-  gap: 16px;
-  align-items: center;
-  width: 100%;
-  max-width: 380px;
-}
-
-.limit-control {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.color-controls {
-  display: flex;
-  flex-direction: column;
   gap: 12px;
-  width: 100%;
+  flex-wrap: wrap;
+  justify-content: center;
 }
-
-.color-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #1e293b;
-  padding: 8px 12px;
-  border-radius: 12px;
-}
-
 button, input {
   background: #1e293b;
   border: none;
@@ -125,38 +50,47 @@ button, input {
   border-radius: 10px;
   font-size: 16px;
 }
-
 button { cursor: pointer; }
 button:hover { background: #334155; }
 
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  width: 100%;
+  max-width: 380px;
+}
+.limit-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.color-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+.color-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #1e293b;
+  padding: 8px 12px;
+  border-radius: 12px;
+}
 input[type="color"] {
   width: 42px;
   height: 32px;
+  border: none;
   border-radius: 6px;
   padding: 0;
-}
-
-/* 🔥 MODO PROYECTOR */
-.fullscreen-mode .controls,
-.fullscreen-mode .settings,
-.fullscreen-mode .fullscreen-btn {
-  display: none !important;
-}
-
-.fullscreen-mode .timer-box {
-  width: 95vw;
-  height: 95vh;
-  font-size: 20vw;
-  border-radius: 0;
 }
 </style>
 </head>
 
 <body>
-
-<button class="fullscreen-btn" id="fullscreenBtn">Pantalla completa</button>
-<div class="exit-fullscreen" id="exitFullscreen">←</div>
-
 <div class="container">
   <div class="timer-box" id="timer">00:00</div>
 
@@ -164,6 +98,7 @@ input[type="color"] {
     <button id="startPauseBtn">Inicio</button>
     <button id="resetBtn">Reiniciar</button>
     <button id="stopBtn">Stop</button>
+    <button id="fullscreenBtn">Pantalla completa</button>
   </div>
 
   <div class="settings">
@@ -193,31 +128,157 @@ input[type="color"] {
   </div>
 </div>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getDatabase, ref, set, onValue, serverTimestamp } 
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCQiHP9BhNw1u751b2Wu_hMqu7TBVHCWsU",
+  authDomain: "crono-1f6e8.firebaseapp.com",
+  databaseURL: "https://crono-1f6e8-default-rtdb.firebaseio.com",
+  projectId: "crono-1f6e8",
+  storageBucket: "crono-1f6e8.firebasestorage.app",
+  messagingSenderId: "685487663087",
+  appId: "1:685487663087:web:980c13ec43d8807fcaf81a"
+};
+
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+const cronoref = ref(database, "cronometro");
+const offsetRef = ref(database, ".info/serverTimeOffset");
+
+/* ---------- PANTALLA COMPLETA ---------- */
+
 const fullscreenBtn = document.getElementById("fullscreenBtn");
-const exitFullscreen = document.getElementById("exitFullscreen");
 
-function enterFullscreen() {
-  const elem = document.documentElement;
-  if (elem.requestFullscreen) elem.requestFullscreen();
-  else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
-  else if (elem.msRequestFullscreen) elem.msRequestFullscreen();
-}
-
-function exitFull() {
-  if (document.exitFullscreen) document.exitFullscreen();
-  else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-  else if (document.msExitFullscreen) document.msExitFullscreen();
-}
-
-fullscreenBtn.onclick = enterFullscreen;
-exitFullscreen.onclick = exitFull;
-
-document.addEventListener("fullscreenchange", () => {
-  const isFull = document.fullscreenElement;
-  document.body.classList.toggle("fullscreen-mode", isFull);
-  exitFullscreen.style.display = isFull ? "flex" : "none";
+fullscreenBtn.addEventListener("click", () => {
+  if (!document.fullscreenElement) {
+    const elem = document.documentElement;
+    if (elem.requestFullscreen) elem.requestFullscreen();
+    else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+    else if (elem.msRequestFullscreen) elem.msRequestFullscreen();
+  } else {
+    if (document.exitFullscreen) document.exitFullscreen();
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    else if (document.msExitFullscreen) document.msExitFullscreen();
+  }
 });
+
+/* ---------- TU CÓDIGO ORIGINAL ---------- */
+
+let serverOffset = 0;
+onValue(offsetRef, snap => {
+  serverOffset = snap.val() || 0;
+});
+
+function getServerTime(){
+  return Date.now() + serverOffset;
+}
+
+let running = false;
+let seconds = 0;
+let limit = 300;
+let lastUpdate = getServerTime();
+
+const timerBox = document.getElementById("timer");
+const startPauseBtn = document.getElementById("startPauseBtn");
+const resetBtn = document.getElementById("resetBtn");
+const stopBtn = document.getElementById("stopBtn");
+const limitInput = document.getElementById("limitInput");
+const pauseColor = document.getElementById("pauseColor");
+const runColor = document.getElementById("runColor");
+const warningColor = document.getElementById("warningColor");
+const overColor = document.getElementById("overColor");
+
+function formatTime(sec){
+  if(!isFinite(sec) || sec < 0) sec = 0;
+  const m = String(Math.floor(sec/60)).padStart(2,'0');
+  const s = String(Math.floor(sec%60)).padStart(2,'0');
+  return `${m}:${s}`;
+}
+
+function updateColor(){
+  const warningTime = limit - 90;
+  if(!running) timerBox.style.background = pauseColor.value;
+  else if(seconds >= limit) timerBox.style.background = overColor.value;
+  else if(seconds >= warningTime) timerBox.style.background = warningColor.value;
+  else timerBox.style.background = runColor.value;
+}
+
+function updateDisplay(){
+  timerBox.textContent = formatTime(seconds);
+  updateColor();
+}
+
+function updateFirebase(){
+  set(cronoref,{
+    seconds,
+    running,
+    limit: limitInput.value,
+    pauseColor: pauseColor.value,
+    runColor: runColor.value,
+    warningColor: warningColor.value,
+    overColor: overColor.value,
+    lastUpdate: serverTimestamp()
+  });
+}
+
+startPauseBtn.onclick = ()=>{
+  running = !running;
+  startPauseBtn.textContent = running ? "Pausa":"Inicio";
+  lastUpdate = getServerTime();
+  updateFirebase();
+};
+
+resetBtn.onclick = ()=>{
+  running = false;
+  seconds = 0;
+  startPauseBtn.textContent = "Inicio";
+  updateFirebase();
+};
+
+stopBtn.onclick = ()=>{
+  running = false;
+  startPauseBtn.textContent = "Inicio";
+  updateFirebase();
+};
+
+onValue(cronoref, snapshot=>{
+  const data = snapshot.val();
+  if(!data) return;
+
+  running = data.running ?? false;
+  limit = (data.limit ?? 5) * 60;
+
+  pauseColor.value = data.pauseColor ?? "#3f3f46";
+  runColor.value = data.runColor ?? "#16a34a";
+  warningColor.value = data.warningColor ?? "#f59e0b";
+  overColor.value = data.overColor ?? "#dc2626";
+
+  if(running && data.lastUpdate){
+    const diff = (getServerTime() - data.lastUpdate) / 1000;
+    seconds = Math.max(0, data.seconds + diff);
+  } else {
+    seconds = Math.max(0, data.seconds ?? 0);
+  }
+
+  startPauseBtn.textContent = running ? "Pausa":"Inicio";
+  lastUpdate = getServerTime();
+});
+
+function tick(){
+  if(running){
+    const now = getServerTime();
+    seconds += (now - lastUpdate) / 1000;
+    lastUpdate = now;
+  } else {
+    lastUpdate = getServerTime();
+  }
+  updateDisplay();
+  requestAnimationFrame(tick);
+}
+tick();
 </script>
 
 </body>
