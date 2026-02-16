@@ -23,7 +23,6 @@ html, body {
   gap: 22px;
   padding: 20px;
   box-sizing: border-box;
-  position: relative;
 }
 .timer-box {
   width: min(90vw, 600px);
@@ -37,17 +36,6 @@ html, body {
   background: #3f3f46;
   letter-spacing: 6px;
   transition: all 0.3s ease;
-  position: relative;
-}
-#timerText {
-  z-index: 1;
-}
-#limitText {
-  font-size: 0.3em;
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  opacity: 0.6;
 }
 .controls {
   display: flex;
@@ -140,10 +128,7 @@ input[type="color"] {
 
 <body>
 <div class="container">
-  <div class="timer-box" id="timer">
-    <span id="timerText">00:00</span>
-    <span id="limitText">Límite: 05:00</span>
-  </div>
+  <div class="timer-box" id="timer">00:00</div>
 
   <div class="controls">
     <button id="startPauseBtn">Inicio</button>
@@ -213,8 +198,6 @@ let seconds = 0;
 let limit = 300;
 let lastUpdate = getServerTime();
 
-const timerText = document.getElementById("timerText");
-const limitText = document.getElementById("limitText");
 const timerBox = document.getElementById("timer");
 const startPauseBtn = document.getElementById("startPauseBtn");
 const resetBtn = document.getElementById("resetBtn");
@@ -234,7 +217,6 @@ function formatTime(sec){
   const s = String(Math.floor(sec%60)).padStart(2,'0');
   return `${m}:${s}`;
 }
-
 function updateColor(){
   const warningTime = limit - 90;
   if(!running) timerBox.style.background = pauseColor.value;
@@ -242,13 +224,10 @@ function updateColor(){
   else if(seconds >= warningTime) timerBox.style.background = warningColor.value;
   else timerBox.style.background = runColor.value;
 }
-
 function updateDisplay(){
-  timerText.textContent = formatTime(seconds);
+  timerBox.textContent = formatTime(seconds);
   updateColor();
-  limitText.textContent = "Límite: " + formatTime((limitInput.value ?? 5) * 60);
 }
-
 function updateFirebase(){
   set(cronoref,{
     seconds,
@@ -281,7 +260,7 @@ stopBtn.onclick = ()=>{
   updateFirebase();
 };
 
-/* ---------- SINCRONIZACIÓN FIREBASE ---------- */
+/* ---------- FIREBASE ---------- */
 onValue(cronoref, snapshot=>{
   const data = snapshot.val();
   if(!data) return;
@@ -291,15 +270,12 @@ onValue(cronoref, snapshot=>{
   runColor.value = data.runColor ?? "#16a34a";
   warningColor.value = data.warningColor ?? "#f59e0b";
   overColor.value = data.overColor ?? "#dc2626";
-  limitInput.value = data.limit ?? 5;
-
   if(running && data.lastUpdate){
     const diff = (getServerTime() - data.lastUpdate) / 1000;
     seconds = Math.max(0, data.seconds + diff);
   } else {
     seconds = Math.max(0, data.seconds ?? 0);
   }
-
   startPauseBtn.textContent = running ? "Pausa":"Inicio";
   lastUpdate = getServerTime();
 });
@@ -318,7 +294,7 @@ function tick(){
 }
 tick();
 
-/* ---------- PANTALLA COMPLETA ---------- */
+/* ---------- PANTALLA COMPLETA SOLO CRONÓMETRO ---------- */
 fullscreenBtn.addEventListener("click", ()=>{
   if(!document.fullscreenElement){
     document.body.classList.add("projection-mode");
@@ -346,12 +322,6 @@ document.addEventListener("fullscreenchange", ()=>{
   if(!document.fullscreenElement){
     document.body.classList.remove("projection-mode");
   }
-});
-
-/* ---------- SINCRONIZAR CAMBIO DE LÍMITE ---------- */
-limitInput.addEventListener("change", ()=>{
-  updateFirebase();
-  updateDisplay();
 });
 </script>
 
