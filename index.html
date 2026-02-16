@@ -103,6 +103,26 @@ input[type="color"] {
   justify-content: center;
   align-items: center;
 }
+
+/* ===== FLECHA SALIR PROYECCIÓN ===== */
+.exit-projection {
+  display: none;
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  font-size: 36px;
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  z-index: 9999;
+  user-select: none;
+  transition: color 0.2s;
+}
+.exit-projection:hover {
+  color: rgba(255,255,255,0.9);
+}
+.projection-mode .exit-projection {
+  display: block;
+}
 </style>
 </head>
 
@@ -144,11 +164,15 @@ input[type="color"] {
   </div>
 </div>
 
+<!-- FLECHA SALIR PROYECCIÓN -->
+<div class="exit-projection" id="exitProjection">&#8592;</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { getDatabase, ref, set, onValue, serverTimestamp } 
 from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
+/* ---------- FIREBASE ---------- */
 const firebaseConfig = {
   apiKey: "AIzaSyCQiHP9BhNw1u751b2Wu_hMqu7TBVHCWsU",
   authDomain: "crono-1f6e8.firebaseapp.com",
@@ -158,45 +182,16 @@ const firebaseConfig = {
   messagingSenderId: "685487663087",
   appId: "1:685487663087:web:980c13ec43d8807fcaf81a"
 };
-
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 const cronoref = ref(database, "cronometro");
 const offsetRef = ref(database, ".info/serverTimeOffset");
 
-/* ---------- PANTALLA COMPLETA SOLO CRONÓMETRO ---------- */
-const fullscreenBtn = document.getElementById("fullscreenBtn");
-
-fullscreenBtn.addEventListener("click", () => {
-  if (!document.fullscreenElement) {
-    document.body.classList.add("projection-mode");
-    const elem = document.documentElement;
-    if (elem.requestFullscreen) elem.requestFullscreen();
-    else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
-    else if (elem.msRequestFullscreen) elem.msRequestFullscreen();
-  } else {
-    document.body.classList.remove("projection-mode");
-    if (document.exitFullscreen) document.exitFullscreen();
-    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-    else if (document.msExitFullscreen) document.msExitFullscreen();
-  }
-});
-
-document.addEventListener("fullscreenchange", () => {
-  if (!document.fullscreenElement) {
-    document.body.classList.remove("projection-mode");
-  }
-});
-
-/* ---------- TU CÓDIGO ORIGINAL ---------- */
+/* ---------- VARIABLES ---------- */
 let serverOffset = 0;
-onValue(offsetRef, snap => {
-  serverOffset = snap.val() || 0;
-});
+onValue(offsetRef, snap => { serverOffset = snap.val() || 0; });
 
-function getServerTime(){
-  return Date.now() + serverOffset;
-}
+function getServerTime(){ return Date.now() + serverOffset; }
 
 let running = false;
 let seconds = 0;
@@ -212,14 +207,16 @@ const pauseColor = document.getElementById("pauseColor");
 const runColor = document.getElementById("runColor");
 const warningColor = document.getElementById("warningColor");
 const overColor = document.getElementById("overColor");
+const fullscreenBtn = document.getElementById("fullscreenBtn");
+const exitProjection = document.getElementById("exitProjection");
 
+/* ---------- FUNCIONES ---------- */
 function formatTime(sec){
   if(!isFinite(sec) || sec < 0) sec = 0;
   const m = String(Math.floor(sec/60)).padStart(2,'0');
   const s = String(Math.floor(sec%60)).padStart(2,'0');
   return `${m}:${s}`;
 }
-
 function updateColor(){
   const warningTime = limit - 90;
   if(!running) timerBox.style.background = pauseColor.value;
@@ -227,12 +224,10 @@ function updateColor(){
   else if(seconds >= warningTime) timerBox.style.background = warningColor.value;
   else timerBox.style.background = runColor.value;
 }
-
 function updateDisplay(){
   timerBox.textContent = formatTime(seconds);
   updateColor();
 }
-
 function updateFirebase(){
   set(cronoref,{
     seconds,
@@ -246,53 +241,89 @@ function updateFirebase(){
   });
 }
 
+/* ---------- EVENTOS BOTONES ---------- */
 startPauseBtn.onclick = ()=>{
   running = !running;
   startPauseBtn.textContent = running ? "Pausa":"Inicio";
   lastUpdate = getServerTime();
   updateFirebase();
 };
-
 resetBtn.onclick = ()=>{
   running = false;
   seconds = 0;
   startPauseBtn.textContent = "Inicio";
   updateFirebase();
 };
-
 stopBtn.onclick = ()=>{
   running = false;
   startPauseBtn.textContent = "Inicio";
   updateFirebase();
 };
 
+/* ---------- FIREBASE ---------- */
 onValue(cronoref, snapshot=>{
   const data = snapshot.val();
   if(!data) return;
-
   running = data.running ?? false;
   limit = (data.limit ?? 5) * 60;
-
   pauseColor.value = data.pauseColor ?? "#3f3f46";
   runColor.value = data.runColor ?? "#16a34a";
   warningColor.value = data.warningColor ?? "#f59e0b";
   overColor.value = data.overColor ?? "#dc2626";
-
   if(running && data.lastUpdate){
     const diff = (getServerTime() - data.lastUpdate) / 1000;
     seconds = Math.max(0, data.seconds + diff);
   } else {
     seconds = Math.max(0, data.seconds ?? 0);
   }
-
   startPauseBtn.textContent = running ? "Pausa":"Inicio";
   lastUpdate = getServerTime();
 });
 
+/* ---------- TICK ---------- */
 function tick(){
   if(running){
     const now = getServerTime();
-    seconds += (now - lastUpdate) / 1000;
+    seconds += (now - lastUpdate)/1000;
     lastUpdate = now;
   } else {
-    lastUpdate = getSer
+    lastUpdate = getServerTime();
+  }
+  updateDisplay();
+  requestAnimationFrame(tick);
+}
+tick();
+
+/* ---------- PANTALLA COMPLETA SOLO CRONÓMETRO ---------- */
+fullscreenBtn.addEventListener("click", ()=>{
+  if(!document.fullscreenElement){
+    document.body.classList.add("projection-mode");
+    const elem = document.documentElement;
+    if(elem.requestFullscreen) elem.requestFullscreen();
+    else if(elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+    else if(elem.msRequestFullscreen) elem.msRequestFullscreen();
+  } else {
+    document.body.classList.remove("projection-mode");
+    if(document.exitFullscreen) document.exitFullscreen();
+    else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+    else if(document.msExitFullscreen) document.msExitFullscreen();
+  }
+});
+
+/* ---------- FLECHA SALIR ---------- */
+exitProjection.addEventListener("click", ()=>{
+  document.body.classList.remove("projection-mode");
+  if(document.exitFullscreen) document.exitFullscreen();
+  else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+  else if(document.msExitFullscreen) document.msExitFullscreen();
+});
+
+document.addEventListener("fullscreenchange", ()=>{
+  if(!document.fullscreenElement){
+    document.body.classList.remove("projection-mode");
+  }
+});
+</script>
+
+</body>
+</html>
