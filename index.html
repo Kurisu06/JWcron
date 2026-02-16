@@ -90,18 +90,25 @@ input[type="color"] {
 }
 
 /* ===== MODO PROYECCIÓN ===== */
-.projection-mode .controls,
-.projection-mode .settings {
-  display: none !important;
+.projection-mode body,
+.projection-mode html {
+  margin: 0;
+  padding: 0;
+}
+.projection-mode .container {
+  min-height: 100vh;
+  justify-content: center;
+  align-items: center;
 }
 .projection-mode .timer-box {
   width: 100vw !important;
   height: 100vh !important;
   font-size: 18vw !important;
   border-radius: 0 !important;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+}
+.projection-mode .controls,
+.projection-mode .settings {
+  display: none !important;
 }
 
 /* ===== FLECHA SALIR PROYECCIÓN ===== */
@@ -217,6 +224,7 @@ function formatTime(sec){
   const s = String(Math.floor(sec%60)).padStart(2,'0');
   return `${m}:${s}`;
 }
+
 function updateColor(){
   const warningTime = limit - 90;
   if(!running) timerBox.style.background = pauseColor.value;
@@ -224,10 +232,12 @@ function updateColor(){
   else if(seconds >= warningTime) timerBox.style.background = warningColor.value;
   else timerBox.style.background = runColor.value;
 }
+
 function updateDisplay(){
   timerBox.textContent = formatTime(seconds);
   updateColor();
 }
+
 function updateFirebase(){
   set(cronoref,{
     seconds,
@@ -241,7 +251,7 @@ function updateFirebase(){
   });
 }
 
-/* ---------- EVENTOS BOTONES ---------- */
+/* ---------- BOTONES ---------- */
 startPauseBtn.onclick = ()=>{
   running = !running;
   startPauseBtn.textContent = running ? "Pausa":"Inicio";
@@ -292,9 +302,8 @@ function tick(){
   updateDisplay();
   requestAnimationFrame(tick);
 }
-tick();
 
-/* ---------- PANTALLA COMPLETA SOLO CRONÓMETRO ---------- */
+/* ---------- PANTALLA COMPLETA ---------- */
 fullscreenBtn.addEventListener("click", ()=>{
   if(!document.fullscreenElement){
     document.body.classList.add("projection-mode");
@@ -323,6 +332,8 @@ document.addEventListener("fullscreenchange", ()=>{
     document.body.classList.remove("projection-mode");
   }
 });
+
+tick();
 </script>
 
 </body>
