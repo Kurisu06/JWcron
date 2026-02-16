@@ -35,6 +35,7 @@ html, body {
   border-radius: 20px;
   background: #3f3f46;
   letter-spacing: 6px;
+  transition: all 0.3s ease;
 }
 .controls {
   display: flex;
@@ -86,6 +87,21 @@ input[type="color"] {
   border: none;
   border-radius: 6px;
   padding: 0;
+}
+
+/* ===== MODO PROYECCIÓN ===== */
+.projection-mode .controls,
+.projection-mode .settings {
+  display: none !important;
+}
+.projection-mode .timer-box {
+  width: 100vw !important;
+  height: 100vh !important;
+  font-size: 18vw !important;
+  border-radius: 0 !important;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 </style>
 </head>
@@ -148,25 +164,31 @@ const database = getDatabase(app);
 const cronoref = ref(database, "cronometro");
 const offsetRef = ref(database, ".info/serverTimeOffset");
 
-/* ---------- PANTALLA COMPLETA ---------- */
-
+/* ---------- PANTALLA COMPLETA SOLO CRONÓMETRO ---------- */
 const fullscreenBtn = document.getElementById("fullscreenBtn");
 
 fullscreenBtn.addEventListener("click", () => {
   if (!document.fullscreenElement) {
+    document.body.classList.add("projection-mode");
     const elem = document.documentElement;
     if (elem.requestFullscreen) elem.requestFullscreen();
     else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
     else if (elem.msRequestFullscreen) elem.msRequestFullscreen();
   } else {
+    document.body.classList.remove("projection-mode");
     if (document.exitFullscreen) document.exitFullscreen();
     else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
     else if (document.msExitFullscreen) document.msExitFullscreen();
   }
 });
 
-/* ---------- TU CÓDIGO ORIGINAL ---------- */
+document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement) {
+    document.body.classList.remove("projection-mode");
+  }
+});
 
+/* ---------- TU CÓDIGO ORIGINAL ---------- */
 let serverOffset = 0;
 onValue(offsetRef, snap => {
   serverOffset = snap.val() || 0;
@@ -273,13 +295,4 @@ function tick(){
     seconds += (now - lastUpdate) / 1000;
     lastUpdate = now;
   } else {
-    lastUpdate = getServerTime();
-  }
-  updateDisplay();
-  requestAnimationFrame(tick);
-}
-tick();
-</script>
-
-</body>
-</html>
+    lastUpdate = getSer
