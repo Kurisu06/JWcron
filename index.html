@@ -14,6 +14,50 @@ html, body {
   color: white;
   height: 100%;
 }
+
+/* BOTÓN FULLSCREEN */
+.fullscreen-btn {
+  position: fixed;
+  top: 15px;
+  right: 15px;
+  z-index: 1000;
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(6px);
+  border: none;
+  color: white;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.fullscreen-btn:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+/* FLECHA SALIR */
+.exit-fullscreen {
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  z-index: 1001;
+  font-size: 28px;
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(6px);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.exit-fullscreen:hover {
+  background: rgba(0,0,0,0.5);
+}
+
 .container {
   min-height: 100vh;
   display: flex;
@@ -24,6 +68,7 @@ html, body {
   padding: 20px;
   box-sizing: border-box;
 }
+
 .timer-box {
   width: min(90vw, 600px);
   height: clamp(120px, 20vw, 200px);
@@ -36,12 +81,14 @@ html, body {
   background: #3f3f46;
   letter-spacing: 6px;
 }
+
 .controls {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
   justify-content: center;
 }
+
 button, input {
   background: #1e293b;
   border: none;
@@ -50,6 +97,7 @@ button, input {
   border-radius: 10px;
   font-size: 16px;
 }
+
 button { cursor: pointer; }
 button:hover { background: #334155; }
 
@@ -61,17 +109,20 @@ button:hover { background: #334155; }
   width: 100%;
   max-width: 380px;
 }
+
 .limit-control {
   display: flex;
   align-items: center;
   gap: 10px;
 }
+
 .color-controls {
   display: flex;
   flex-direction: column;
   gap: 12px;
   width: 100%;
 }
+
 .color-item {
   display: flex;
   justify-content: space-between;
@@ -80,6 +131,7 @@ button:hover { background: #334155; }
   padding: 8px 12px;
   border-radius: 12px;
 }
+
 input[type="color"] {
   width: 42px;
   height: 32px;
@@ -91,6 +143,10 @@ input[type="color"] {
 </head>
 
 <body>
+
+<button class="fullscreen-btn" id="fullscreenBtn">Pantalla completa</button>
+<div class="exit-fullscreen" id="exitFullscreen">←</div>
+
 <div class="container">
   <div class="timer-box" id="timer">00:00</div>
 
@@ -128,18 +184,48 @@ input[type="color"] {
 </div>
 
 <script type="module">
+/* ---------- FULLSCREEN ---------- */
+
+const fullscreenBtn = document.getElementById("fullscreenBtn");
+const exitFullscreen = document.getElementById("exitFullscreen");
+
+function enterFullscreen() {
+  const elem = document.documentElement;
+
+  if (elem.requestFullscreen) elem.requestFullscreen();
+  else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+  else if (elem.msRequestFullscreen) elem.msRequestFullscreen();
+}
+
+function exitFull() {
+  if (document.exitFullscreen) document.exitFullscreen();
+  else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+  else if (document.msExitFullscreen) document.msExitFullscreen();
+}
+
+fullscreenBtn.onclick = enterFullscreen;
+exitFullscreen.onclick = exitFull;
+
+document.addEventListener("fullscreenchange", () => {
+  const isFull = document.fullscreenElement;
+  exitFullscreen.style.display = isFull ? "flex" : "none";
+  fullscreenBtn.style.display = isFull ? "none" : "block";
+});
+
+/* ---------- TU CÓDIGO ORIGINAL ---------- */
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { getDatabase, ref, set, onValue, serverTimestamp } 
 from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCQiHP9BhNw1u751b2Wu_hMqu7TBVHCWsU",
-  authDomain: "crono-1f6e8.firebaseapp.com",
-  databaseURL: "https://crono-1f6e8-default-rtdb.firebaseio.com",
-  projectId: "crono-1f6e8",
-  storageBucket: "crono-1f6e8.firebasestorage.app",
-  messagingSenderId: "685487663087",
-  appId: "1:685487663087:web:980c13ec43d8807fcaf81a"
+  apiKey: "TU_API_KEY",
+  authDomain: "TU_AUTH_DOMAIN",
+  databaseURL: "TU_DATABASE_URL",
+  projectId: "TU_PROJECT_ID",
+  storageBucket: "TU_STORAGE",
+  messagingSenderId: "TU_MSG_ID",
+  appId: "TU_APP_ID"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -260,5 +346,6 @@ function tick(){
 }
 tick();
 </script>
+
 </body>
 </html>
