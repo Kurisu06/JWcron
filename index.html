@@ -226,7 +226,7 @@ function formatTime(sec){
 }
 
 function updateColor(){
-  const warningTime = limit - 90;
+  const warningTime = limit - 60;
   if(!running) timerBox.style.background = pauseColor.value;
   else if(seconds >= limit) timerBox.style.background = overColor.value;
   else if(seconds >= warningTime) timerBox.style.background = warningColor.value;
@@ -338,3 +338,4 @@ tick();
 
 </body>
 </html>
+
