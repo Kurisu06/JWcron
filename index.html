@@ -403,8 +403,30 @@ function goFullScreen(){
   else if(el.msRequestFullscreen) el.msRequestFullscreen();
 }
 
-document.body.addEventListener("click", goFullScreen);
+function goFullScreen(){
+  const el = document.documentElement;
+  if(el.requestFullscreen) return el.requestFullscreen();
+  if(el.webkitRequestFullscreen) return el.webkitRequestFullscreen();
+  if(el.msRequestFullscreen) return el.msRequestFullscreen();
+}
 
+// Botón invisible que cubre toda la pantalla
+const overlay = document.createElement("div");
+overlay.style.position = "fixed";
+overlay.style.top = 0;
+overlay.style.left = 0;
+overlay.style.width = "100vw";
+overlay.style.height = "100vh";
+overlay.style.background = "rgba(0,0,0,0.01)";
+overlay.style.zIndex = 9999;
+overlay.style.cursor = "pointer";
+
+overlay.addEventListener("click", ()=>{
+  goFullScreen();
+  overlay.remove(); // se elimina después del primer clic
+});
+
+document.body.appendChild(overlay);
 </script>
 </body>
 </html>
