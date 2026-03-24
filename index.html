@@ -305,18 +305,50 @@ function tick(){
 
 /* ---------- PANTALLA COMPLETA ---------- */
 fullscreenBtn.addEventListener("click", ()=>{
-  if(!document.fullscreenElement){
-    document.body.classList.add("projection-mode");
-    const elem = document.documentElement;
-    if(elem.requestFullscreen) elem.requestFullscreen();
-    else if(elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
-    else if(elem.msRequestFullscreen) elem.msRequestFullscreen();
-  } else {
-    document.body.classList.remove("projection-mode");
-    if(document.exitFullscreen) document.exitFullscreen();
-    else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
-    else if(document.msExitFullscreen) document.msExitFullscreen();
-  }
+  const projectionWindow = window.open("", "_blank");
+
+  projectionWindow.document.write(`
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <title>Proyección</title>
+      <style>
+        body {
+          margin: 0;
+          background: black;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+        }
+        #timerDisplay {
+          font-size: 20vw;
+          font-family: Arial, sans-serif;
+          color: white;
+        }
+      </style>
+    </head>
+    <body>
+      <div id="timerDisplay">00:00</div>
+
+      <script>
+        const timerEl = document.getElementById("timerDisplay");
+
+        function update() {
+          const mainTimer = window.opener.document.getElementById("timer");
+          if(mainTimer){
+            timerEl.textContent = mainTimer.textContent;
+            timerEl.style.background = mainTimer.style.background;
+          }
+          requestAnimationFrame(update);
+        }
+
+        update();
+      <\/script>
+    </body>
+    </html>
+  `);
 });
 
 /* ---------- FLECHA SALIR ---------- */
