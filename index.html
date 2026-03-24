@@ -345,29 +345,41 @@ fullscreenBtn.addEventListener("click", ()=>{
       <script>
         const timerEl = document.getElementById("timerDisplay");
 
-        function update() {
-          const mainTimer = window.opener.document.getElementById("timer");
+function getMainTimer(){
+  try {
+    return window.opener && window.opener.document
+      ? window.opener.document.getElementById("timer")
+      : null;
+  } catch(e){
+    return null;
+  }
+}
 
-          if(mainTimer){
-            timerEl.textContent = mainTimer.textContent;
-            timerEl.style.background = mainTimer.style.background;
-          }
+function update() {
+  const mainTimer = getMainTimer();
 
-          requestAnimationFrame(update);
-        }
+  if(mainTimer){
+    timerEl.textContent = mainTimer.textContent;
+    timerEl.style.background = mainTimer.style.background;
+  }
 
-        // Intentar pantalla completa automática
-        function goFullScreen(){
-          const el = document.documentElement;
-          if(el.requestFullscreen) el.requestFullscreen();
-          else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-          else if(el.msRequestFullscreen) el.msRequestFullscreen();
-        }
+  requestAnimationFrame(update);
+}
 
-        document.body.addEventListener("click", goFullScreen);
-        goFullScreen();
+// FULLSCREEN
+function goFullScreen(){
+  const el = document.documentElement;
+  if(el.requestFullscreen) el.requestFullscreen();
+  else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  else if(el.msRequestFullscreen) el.msRequestFullscreen();
+}
 
-        update();
+// importante: esperar interacción real
+setTimeout(()=>{
+  document.body.addEventListener("click", goFullScreen, { once: true });
+}, 500);
+
+update();
       <\/script>
     </body>
     </html>
