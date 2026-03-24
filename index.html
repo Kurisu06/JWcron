@@ -305,132 +305,100 @@ function tick(){
 
 /* ---------- PANTALLA COMPLETA ---------- */
 fullscreenBtn.addEventListener("click", ()=>{
-  const width = screen.width;
-  const height = screen.height;
-
   const projectionWindow = window.open(
     "",
     "_blank",
-    `width=${width},height=${height},top=0,left=0,resizable=no`
+    `width=${screen.width},height=${screen.height},top=0,left=0`
   );
 
   projectionWindow.document.write(`
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<title>Proyección</title>
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <title>Proyección</title>
+      <style>
+        html, body {
+          margin: 0;
+          padding: 0;
+          background: black;
+          overflow: hidden;
+        }
+        #timerDisplay {
+          width: 100vw;
+          height: 100vh;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          font-size: 18vw;
+          font-family: 'Segoe UI', sans-serif;
+          color: white;
+        }
+      </style>
+    </head>
+    <body>
+      <div id="timerDisplay">00:00</div>
 
-<style>
-  html, body {
-    margin: 0;
-    padding: 0;
-    background: black;
-    overflow: hidden;
-  }
-  #timerDisplay {
-    width: 100vw;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 18vw;
-    font-family: 'Segoe UI', sans-serif;
-    color: white;
-  }
-</style>
-</head>
+      <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+        import { getDatabase, ref, onValue } 
+        from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
-<body>
-<div id="timerDisplay">00:00</div>
+        const firebaseConfig = {
+          apiKey: "AIzaSyCQiHP9BhNw1u751b2Wu_hMqu7TBVHCWsU",
+          authDomain: "crono-1f6e8.firebaseapp.com",
+          databaseURL: "https://crono-1f6e8-default-rtdb.firebaseio.com",
+          projectId: "crono-1f6e8",
+          storageBucket: "crono-1f6e8.firebasestorage.app",
+          messagingSenderId: "685487663087",
+          appId: "1:685487663087:web:980c13ec43d8807fcaf81a"
+        };
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getDatabase, ref, onValue } 
-from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const cronoref = ref(db, "cronometro");
 
-/* MISMA CONFIG */
-const firebaseConfig = {
-  apiKey: "AIzaSyCQiHP9BhNw1u751b2Wu_hMqu7TBVHCWsU",
-  authDomain: "crono-1f6e8.firebaseapp.com",
-  databaseURL: "https://crono-1f6e8-default-rtdb.firebaseio.com",
-  projectId: "crono-1f6e8",
-  storageBucket: "crono-1f6e8.firebasestorage.app",
-  messagingSenderId: "685487663087",
-  appId: "1:685487663087:web:980c13ec43d8807fcaf81a"
-};
+        const timerEl = document.getElementById("timerDisplay");
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const cronoref = ref(db, "cronometro");
+        function formatTime(sec){
+          if(!isFinite(sec) || sec < 0) sec = 0;
+          const m = String(Math.floor(sec/60)).padStart(2,'0');
+          const s = String(Math.floor(sec%60)).padStart(2,'0');
+          return m + ":" + s;
+        }
 
-const timerEl = document.getElementById("timerDisplay");
+        onValue(cronoref, (snap)=>{
+          const data = snap.val();
+          if(!data) return;
 
-function formatTime(sec){
-  if(!isFinite(sec) || sec < 0) sec = 0;
-  const m = String(Math.floor(sec/60)).padStart(2,'0');
-  const s = String(Math.floor(sec%60)).padStart(2,'0');
-  return m + ":" + s;
-}
+          const seconds = data.seconds ?? 0;
+          const limit = (data.limit ?? 5) * 60;
 
-onValue(cronoref, (snap)=>{
-  const data = snap.val();
-  if(!data) return;
+          timerEl.textContent = formatTime(seconds);
 
-  const seconds = data.seconds ?? 0;
-  const limit = (data.limit ?? 5) * 60;
+          const warningTime = limit - 60;
 
-  timerEl.textContent = formatTime(seconds);
+          if(!data.running){
+            timerEl.style.background = data.pauseColor;
+          } else if(seconds >= limit){
+            timerEl.style.background = data.overColor;
+          } else if(seconds >= warningTime){
+            timerEl.style.background = data.warningColor;
+          } else {
+            timerEl.style.background = data.runColor;
+          }
+        });
 
-  const warningTime = limit - 60;
-
-  if(!data.running){
-    timerEl.style.background = data.pauseColor;
-  } else if(seconds >= limit){
-    timerEl.style.background = data.overColor;
-  } else if(seconds >= warningTime){
-    timerEl.style.background = data.warningColor;
-  } else {
-    timerEl.style.background = data.runColor;
-  }
+        // fullscreen SOLO con clic
+        document.addEventListener("click", ()=>{
+          const el = document.documentElement;
+          if(el.requestFullscreen) el.requestFullscreen();
+        });
+      <\/script>
+    </body>
+    </html>
+  `);
 });
-
-/* FULLSCREEN reutilizable */
-function goFullScreen(){
-  const el = document.documentElement;
-  if(el.requestFullscreen) el.requestFullscreen();
-  else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-  else if(el.msRequestFullscreen) el.msRequestFullscreen();
-}
-
-function goFullScreen(){
-  const el = document.documentElement;
-  if(el.requestFullscreen) return el.requestFullscreen();
-  if(el.webkitRequestFullscreen) return el.webkitRequestFullscreen();
-  if(el.msRequestFullscreen) return el.msRequestFullscreen();
-}
-
-// Botón invisible que cubre toda la pantalla
-const overlay = document.createElement("div");
-overlay.style.position = "fixed";
-overlay.style.top = 0;
-overlay.style.left = 0;
-overlay.style.width = "100vw";
-overlay.style.height = "100vh";
-overlay.style.background = "rgba(0,0,0,0.01)";
-overlay.style.zIndex = 9999;
-overlay.style.cursor = "pointer";
-
-overlay.addEventListener("click", ()=>{
-  goFullScreen();
-  overlay.remove(); // se elimina después del primer clic
-});
-
-document.body.appendChild(overlay);
-</script>
-</body>
-</html>
-`);
 
 /* ---------- FLECHA SALIR ---------- */
 exitProjection.addEventListener("click", ()=>{
