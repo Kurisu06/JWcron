@@ -323,6 +323,26 @@ fullscreenBtn.addEventListener("click", () => {
           width:100vw; height:100vh; display:flex;
           justify-content:center; align-items:center;
           font-size:18vw; font-family:'Segoe UI',sans-serif; color:white;
+        }fullscreenBtn.addEventListener("click", () => {
+  const projectionWindow = window.open(
+    "",
+    "_blank",
+    `width=${screen.width},height=${screen.height},top=0,left=0`
+  );
+
+  // Estructura básica de la ventana emergente
+  projectionWindow.document.write(`
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <title>Proyección</title>
+      <style>
+        html, body { margin:0; padding:0; background:black; overflow:hidden; }
+        #timerDisplay {
+          width:100vw; height:100vh; display:flex;
+          justify-content:center; align-items:center;
+          font-size:18vw; font-family:'Segoe UI',sans-serif; color:white;
         }
       </style>
     </head>
@@ -332,7 +352,7 @@ fullscreenBtn.addEventListener("click", () => {
     </html>
   `);
 
-  // Inyectar el script como módulo después de cargar el body
+  // Inyectamos un script independiente solo para la ventana emergente
   const script = projectionWindow.document.createElement('script');
   script.type = 'module';
   script.textContent = `
