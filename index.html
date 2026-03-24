@@ -305,10 +305,8 @@ function tick(){
 
 /* ---------- PANTALLA COMPLETA ---------- */
 fullscreenBtn.addEventListener("click", () => {
-  // Abrimos una ventana completamente nueva
   const projectionWindow = window.open("", "_blank", `width=${screen.width},height=${screen.height},top=0,left=0`);
 
-  // Ponemos solo HTML básico en la nueva ventana
   projectionWindow.document.body.innerHTML = `
     <div id="timerDisplay" style="
       width:100vw;
@@ -320,10 +318,28 @@ fullscreenBtn.addEventListener("click", () => {
       font-family:'Segoe UI',sans-serif;
       color:white;
       background:black;
+      margin:0;
     ">00:00</div>
+
+    <div id="exitProjection" style="
+      position:fixed;
+      top:20px;
+      left:20px;
+      font-size:48px;
+      color:rgba(255,255,255,0.5);
+      cursor:pointer;
+      z-index:9999;
+      user-select:none;
+      transition: color 0.2s;
+    ">&#8592;</div>
   `;
 
-  // Creamos un script independiente solo en la nueva ventana
+  // Flecha cambia de color al pasar el mouse
+  const exitEl = projectionWindow.document.getElementById("exitProjection");
+  exitEl.addEventListener("mouseenter", () => exitEl.style.color = "rgba(255,255,255,0.9)");
+  exitEl.addEventListener("mouseleave", () => exitEl.style.color = "rgba(255,255,255,0.5)");
+  exitEl.addEventListener("click", () => projectionWindow.close());
+
   const script = projectionWindow.document.createElement("script");
   script.type = "module";
   script.textContent = `
@@ -366,8 +382,8 @@ fullscreenBtn.addEventListener("click", () => {
       limit = (data.limit ?? 5) * 60;
       if(running && data.lastUpdate){
         const diff = (getServerTime() - data.lastUpdate)/1000;
-        seconds = Math.max(0, data.seconds + diff);
-      } else { seconds = Math.max(0, data.seconds ?? 0); }
+        seconds = Math.max(0,data.seconds + diff);
+      } else { seconds = Math.max(0,data.seconds ?? 0); }
       lastUpdate = getServerTime();
       timerEl.dataset.pauseColor = data.pauseColor;
       timerEl.dataset.runColor = data.runColor;
