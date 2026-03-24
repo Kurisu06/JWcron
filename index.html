@@ -339,38 +339,45 @@ fullscreenBtn.addEventListener("click", ()=>{
     <body>
       <div id="timerDisplay">00:00</div>
 
-      <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-        import { getDatabase, ref, onValue } 
-        from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getDatabase, ref, onValue } 
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
-        const firebaseConfig = {
-          apiKey: "AIzaSyCQiHP9BhNw1u751b2Wu_hMqu7TBVHCWsU",
-          authDomain: "crono-1f6e8.firebaseapp.com",
-          databaseURL: "https://crono-1f6e8-default-rtdb.firebaseio.com",
-          projectId: "crono-1f6e8",
-          storageBucket: "crono-1f6e8.firebasestorage.app",
-          messagingSenderId: "685487663087",
-          appId: "1:685487663087:web:980c13ec43d8807fcaf81a"
-        };
+/* FIREBASE */
+const firebaseConfig = {
+  apiKey: "AIzaSyCQiHP9BhNw1u751b2Wu_hMqu7TBVHCWsU",
+  authDomain: "crono-1f6e8.firebaseapp.com",
+  databaseURL: "https://crono-1f6e8-default-rtdb.firebaseio.com",
+  projectId: "crono-1f6e8",
+  storageBucket: "crono-1f6e8.firebasestorage.app",
+  messagingSenderId: "685487663087",
+  appId: "1:685487663087:web:980c13ec43d8807fcaf81a"
+};
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const cronoref = ref(db, "cronometro");
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-        const timerEl = document.getElementById("timerDisplay");
+const cronoref = ref(db, "cronometro");
+const offsetRef = ref(db, ".info/serverTimeOffset");
 
-        function formatTime(sec){
-          if(!isFinite(sec) || sec < 0) sec = 0;
-          const m = String(Math.floor(sec/60)).padStart(2,'0');
-          const s = String(Math.floor(sec%60)).padStart(2,'0');
-          return m + ":" + s;
-        }
+let serverOffset = 0;
+onValue(offsetRef, snap => {
+  serverOffset = snap.val() || 0;
+});
 
-       let seconds = 0;
+function getServerTime(){
+  return Date.now() + serverOffset;
+}
+
+/* VARIABLES */
+let seconds = 0;
 let running = false;
-let lastUpdate = Date.now();
+let lastUpdate = getServerTime();
+let limit = 300;
 
+const timerEl = document.getElementById("timerDisplay");
+
+/* FORMATO */
 function formatTime(sec){
   if(!isFinite(sec) || sec < 0) sec = 0;
   const m = String(Math.floor(sec/60)).padStart(2,'0');
@@ -378,48 +385,64 @@ function formatTime(sec){
   return m + ":" + s;
 }
 
+/* ESCUCHAR FIREBASE */
 onValue(cronoref, (snap)=>{
   const data = snap.val();
   if(!data) return;
 
-  seconds = data.seconds ?? 0;
   running = data.running ?? false;
-  lastUpdate = Date.now();
+  limit = (data.limit ?? 5) * 60;
 
-  const limit = (data.limit ?? 5) * 60;
-  const warningTime = limit - 60;
-
-  function update(){
-    if(running){
-      const now = Date.now();
-      seconds += (now - lastUpdate) / 1000;
-      lastUpdate = now;
-    } else {
-      lastUpdate = Date.now();
-    }
-
-    timerEl.textContent = formatTime(seconds);
-
-    if(!running){
-      timerEl.style.background = data.pauseColor;
-    } else if(seconds >= limit){
-      timerEl.style.background = data.overColor;
-    } else if(seconds >= warningTime){
-      timerEl.style.background = data.warningColor;
-    } else {
-      timerEl.style.background = data.runColor;
-    }
-
-    requestAnimationFrame(update);
+  if(running && data.lastUpdate){
+    const diff = (getServerTime() - data.lastUpdate) / 1000;
+    seconds = Math.max(0, data.seconds + diff);
+  } else {
+    seconds = Math.max(0, data.seconds ?? 0);
   }
 
-  update();
+  lastUpdate = getServerTime();
+
+  // guardar colores actuales
+  timerEl.dataset.pauseColor = data.pauseColor;
+  timerEl.dataset.runColor = data.runColor;
+  timerEl.dataset.warningColor = data.warningColor;
+  timerEl.dataset.overColor = data.overColor;
 });
-        // fullscreen SOLO con clic
-        document.addEventListener("click", ()=>{
-          const el = document.documentElement;
-          if(el.requestFullscreen) el.requestFullscreen();
-        });
+
+/* LOOP TIEMPO REAL */
+function tick(){
+  if(running){
+    const now = getServerTime();
+    seconds += (now - lastUpdate) / 1000;
+    lastUpdate = now;
+  } else {
+    lastUpdate = getServerTime();
+  }
+
+  timerEl.textContent = formatTime(seconds);
+
+  const warningTime = limit - 60;
+
+  if(!running){
+    timerEl.style.background = timerEl.dataset.pauseColor;
+  } else if(seconds >= limit){
+    timerEl.style.background = timerEl.dataset.overColor;
+  } else if(seconds >= warningTime){
+    timerEl.style.background = timerEl.dataset.warningColor;
+  } else {
+    timerEl.style.background = timerEl.dataset.runColor;
+  }
+
+  requestAnimationFrame(tick);
+}
+
+tick();
+
+/* FULLSCREEN con clic */
+document.addEventListener("click", ()=>{
+  const el = document.documentElement;
+  if(el.requestFullscreen) el.requestFullscreen();
+});
       <\/script>
     </body>
     </html>
