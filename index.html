@@ -305,9 +305,10 @@ function tick(){
 
 /* ---------- PANTALLA COMPLETA ---------- */
 fullscreenBtn.addEventListener("click", () => {
+  // Abrimos una ventana completamente nueva
   const projectionWindow = window.open("", "_blank", `width=${screen.width},height=${screen.height},top=0,left=0`);
 
-  // Solo modificamos el body de la nueva ventana, nada en la principal
+  // Ponemos solo HTML básico en la nueva ventana
   projectionWindow.document.body.innerHTML = `
     <div id="timerDisplay" style="
       width:100vw;
@@ -322,9 +323,9 @@ fullscreenBtn.addEventListener("click", () => {
     ">00:00</div>
   `;
 
-  // Creamos un script independiente en la ventana emergente
-  const script = projectionWindow.document.createElement('script');
-  script.type = 'module';
+  // Creamos un script independiente solo en la nueva ventana
+  const script = projectionWindow.document.createElement("script");
+  script.type = "module";
   script.textContent = `
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
     import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
@@ -347,7 +348,7 @@ fullscreenBtn.addEventListener("click", () => {
     let serverOffset = 0;
     onValue(offsetRef, snap => { serverOffset = snap.val() || 0; });
 
-    function getServerTime(){ return Date.now() + serverOffset; }
+    function getServerTime() { return Date.now() + serverOffset; }
 
     let seconds = 0, running = false, lastUpdate = getServerTime(), limit = 300;
     const timerEl = document.getElementById("timerDisplay");
@@ -365,8 +366,8 @@ fullscreenBtn.addEventListener("click", () => {
       limit = (data.limit ?? 5) * 60;
       if(running && data.lastUpdate){
         const diff = (getServerTime() - data.lastUpdate)/1000;
-        seconds = Math.max(0,data.seconds + diff);
-      } else { seconds = Math.max(0,data.seconds ?? 0); }
+        seconds = Math.max(0, data.seconds + diff);
+      } else { seconds = Math.max(0, data.seconds ?? 0); }
       lastUpdate = getServerTime();
       timerEl.dataset.pauseColor = data.pauseColor;
       timerEl.dataset.runColor = data.runColor;
@@ -379,20 +380,15 @@ fullscreenBtn.addEventListener("click", () => {
       else lastUpdate = getServerTime();
       timerEl.textContent = formatTime(seconds);
       const warningTime = limit-60;
-      if(!running) timerEl.style.background=timerEl.dataset.pauseColor;
-      else if(seconds>=limit) timerEl.style.background=timerEl.dataset.overColor;
-      else if(seconds>=warningTime) timerEl.style.background=timerEl.dataset.warningColor;
-      else timerEl.style.background=timerEl.dataset.runColor;
+      if(!running) timerEl.style.background = timerEl.dataset.pauseColor;
+      else if(seconds>=limit) timerEl.style.background = timerEl.dataset.overColor;
+      else if(seconds>=warningTime) timerEl.style.background = timerEl.dataset.warningColor;
+      else timerEl.style.background = timerEl.dataset.runColor;
       requestAnimationFrame(tick);
     }
     tick();
   `;
   projectionWindow.document.body.appendChild(script);
-});
-      <\/script>
-    </body>
-    </html>
-  `);
 });
 
 /* ---------- FLECHA SALIR ---------- */
