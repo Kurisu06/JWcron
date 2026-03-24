@@ -305,49 +305,90 @@ function tick(){
 
 /* ---------- PANTALLA COMPLETA ---------- */
 fullscreenBtn.addEventListener("click", () => {
-  const projectionWindow = window.open(
-    "",
-    "_blank",
-    `width=${screen.width},height=${screen.height},top=0,left=0`
-  );
+  const projectionWindow = window.open("", "_blank", `width=${screen.width},height=${screen.height},top=0,left=0`);
 
-  projectionWindow.document.write(`
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-      <meta charset="UTF-8">
-      <title>Proyección</title>
-      <style>
-        html, body { margin:0; padding:0; background:black; overflow:hidden; }
-        #timerDisplay {
-          width:100vw; height:100vh; display:flex;
-          justify-content:center; align-items:center;
-          font-size:18vw; font-family:'Segoe UI',sans-serif; color:white;
-        }fullscreenBtn.addEventListener("click", () => {
-  const projectionWindow = window.open(
-    "",
-    "_blank",
-    `width=${screen.width},height=${screen.height},top=0,left=0`
-  );
+  // Establecer solo HTML básico
+  projectionWindow.document.body.innerHTML = `
+    <div id="timerDisplay" style="
+      width:100vw;
+      height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      font-size:18vw;
+      font-family:'Segoe UI',sans-serif;
+      color:white;
+      background:black;
+    ">00:00</div>
+  `;
 
-  // Estructura básica de la ventana emergente
-  projectionWindow.document.write(`
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-      <meta charset="UTF-8">
-      <title>Proyección</title>
-      <style>
-        html, body { margin:0; padding:0; background:black; overflow:hidden; }
-        #timerDisplay {
-          width:100vw; height:100vh; display:flex;
-          justify-content:center; align-items:center;
-          font-size:18vw; font-family:'Segoe UI',sans-serif; color:white;
-        }
-      </style>
-    </head>
-    <body>
-      <div id="timerDisplay">00:00</div>
+  // Crear script independiente en la ventana emergente
+  const script = projectionWindow.document.createElement('script');
+  script.type = 'module';
+  script.textContent = `
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCQiHP9BhNw1u751b2Wu_hMqu7TBVHCWsU",
+      authDomain: "crono-1f6e8.firebaseapp.com",
+      databaseURL: "https://crono-1f6e8-default-rtdb.firebaseio.com",
+      projectId: "crono-1f6e8",
+      storageBucket: "crono-1f6e8.firebasestorage.app",
+      messagingSenderId: "685487663087",
+      appId: "1:685487663087:web:980c13ec43d8807fcaf81a"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const cronoref = ref(db, "cronometro");
+    const offsetRef = ref(db, ".info/serverTimeOffset");
+
+    let serverOffset = 0;
+    onValue(offsetRef, snap => { serverOffset = snap.val() || 0; });
+
+    function getServerTime(){ return Date.now() + serverOffset; }
+
+    let seconds = 0, running = false, lastUpdate = getServerTime(), limit = 300;
+    const timerEl = document.getElementById("timerDisplay");
+
+    function formatTime(sec){
+      if(!isFinite(sec)||sec<0) sec=0;
+      const m = String(Math.floor(sec/60)).padStart(2,'0');
+      const s = String(Math.floor(sec%60)).padStart(2,'0');
+      return m + ":" + s;
+    }
+
+    onValue(cronoref, snap => {
+      const data = snap.val(); if(!data) return;
+      running = data.running ?? false;
+      limit = (data.limit ?? 5) * 60;
+      if(running && data.lastUpdate){
+        const diff = (getServerTime() - data.lastUpdate)/1000;
+        seconds = Math.max(0,data.seconds + diff);
+      } else { seconds = Math.max(0,data.seconds ?? 0); }
+      lastUpdate = getServerTime();
+      timerEl.dataset.pauseColor = data.pauseColor;
+      timerEl.dataset.runColor = data.runColor;
+      timerEl.dataset.warningColor = data.warningColor;
+      timerEl.dataset.overColor = data.overColor;
+    });
+
+    function tick(){
+      if(running){ const now = getServerTime(); seconds += (now-lastUpdate)/1000; lastUpdate=now; }
+      else lastUpdate = getServerTime();
+      timerEl.textContent = formatTime(seconds);
+      const warningTime = limit-60;
+      if(!running) timerEl.style.background=timerEl.dataset.pauseColor;
+      else if(seconds>=limit) timerEl.style.background=timerEl.dataset.overColor;
+      else if(seconds>=warningTime) timerEl.style.background=timerEl.dataset.warningColor;
+      else timerEl.style.background=timerEl.dataset.runColor;
+      requestAnimationFrame(tick);
+    }
+    tick();
+  `;
+  projectionWindow.document.body.appendChild(script);
+});
     </body>
     </html>
   `);
