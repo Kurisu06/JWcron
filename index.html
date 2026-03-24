@@ -367,28 +367,54 @@ fullscreenBtn.addEventListener("click", ()=>{
           return m + ":" + s;
         }
 
-        onValue(cronoref, (snap)=>{
-          const data = snap.val();
-          if(!data) return;
+       let seconds = 0;
+let running = false;
+let lastUpdate = Date.now();
 
-          const seconds = data.seconds ?? 0;
-          const limit = (data.limit ?? 5) * 60;
+function formatTime(sec){
+  if(!isFinite(sec) || sec < 0) sec = 0;
+  const m = String(Math.floor(sec/60)).padStart(2,'0');
+  const s = String(Math.floor(sec%60)).padStart(2,'0');
+  return m + ":" + s;
+}
 
-          timerEl.textContent = formatTime(seconds);
+onValue(cronoref, (snap)=>{
+  const data = snap.val();
+  if(!data) return;
 
-          const warningTime = limit - 60;
+  seconds = data.seconds ?? 0;
+  running = data.running ?? false;
+  lastUpdate = Date.now();
 
-          if(!data.running){
-            timerEl.style.background = data.pauseColor;
-          } else if(seconds >= limit){
-            timerEl.style.background = data.overColor;
-          } else if(seconds >= warningTime){
-            timerEl.style.background = data.warningColor;
-          } else {
-            timerEl.style.background = data.runColor;
-          }
-        });
+  const limit = (data.limit ?? 5) * 60;
+  const warningTime = limit - 60;
 
+  function update(){
+    if(running){
+      const now = Date.now();
+      seconds += (now - lastUpdate) / 1000;
+      lastUpdate = now;
+    } else {
+      lastUpdate = Date.now();
+    }
+
+    timerEl.textContent = formatTime(seconds);
+
+    if(!running){
+      timerEl.style.background = data.pauseColor;
+    } else if(seconds >= limit){
+      timerEl.style.background = data.overColor;
+    } else if(seconds >= warningTime){
+      timerEl.style.background = data.warningColor;
+    } else {
+      timerEl.style.background = data.runColor;
+    }
+
+    requestAnimationFrame(update);
+  }
+
+  update();
+});
         // fullscreen SOLO con clic
         document.addEventListener("click", ()=>{
           const el = document.documentElement;
