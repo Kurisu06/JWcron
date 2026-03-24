@@ -304,7 +304,7 @@ function tick(){
 }
 
 /* ---------- PANTALLA COMPLETA ---------- */
-fullscreenBtn.addEventListener("click", ()=>{
+fullscreenBtn.addEventListener("click", () => {
   const projectionWindow = window.open(
     "",
     "_blank",
@@ -318,130 +318,86 @@ fullscreenBtn.addEventListener("click", ()=>{
       <meta charset="UTF-8">
       <title>Proyección</title>
       <style>
-        html, body {
-          margin: 0;
-          padding: 0;
-          background: black;
-          overflow: hidden;
-        }
+        html, body { margin:0; padding:0; background:black; overflow:hidden; }
         #timerDisplay {
-          width: 100vw;
-          height: 100vh;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          font-size: 18vw;
-          font-family: 'Segoe UI', sans-serif;
-          color: white;
+          width:100vw; height:100vh; display:flex;
+          justify-content:center; align-items:center;
+          font-size:18vw; font-family:'Segoe UI',sans-serif; color:white;
         }
       </style>
     </head>
     <body>
       <div id="timerDisplay">00:00</div>
+    </body>
+    </html>
+  `);
 
-     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getDatabase, ref, onValue } 
-from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+  // Inyectar el script como módulo después de cargar el body
+  const script = projectionWindow.document.createElement('script');
+  script.type = 'module';
+  script.textContent = `
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
-/* FIREBASE */
-const firebaseConfig = {
-  apiKey: "AIzaSyCQiHP9BhNw1u751b2Wu_hMqu7TBVHCWsU",
-  authDomain: "crono-1f6e8.firebaseapp.com",
-  databaseURL: "https://crono-1f6e8-default-rtdb.firebaseio.com",
-  projectId: "crono-1f6e8",
-  storageBucket: "crono-1f6e8.firebasestorage.app",
-  messagingSenderId: "685487663087",
-  appId: "1:685487663087:web:980c13ec43d8807fcaf81a"
-};
+    const firebaseConfig = {
+      apiKey: "AIzaSyCQiHP9BhNw1u751b2Wu_hMqu7TBVHCWsU",
+      authDomain: "crono-1f6e8.firebaseapp.com",
+      databaseURL: "https://crono-1f6e8-default-rtdb.firebaseio.com",
+      projectId: "crono-1f6e8",
+      storageBucket: "crono-1f6e8.firebasestorage.app",
+      messagingSenderId: "685487663087",
+      appId: "1:685487663087:web:980c13ec43d8807fcaf81a"
+    };
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const cronoref = ref(db, "cronometro");
+    const offsetRef = ref(db, ".info/serverTimeOffset");
 
-const cronoref = ref(db, "cronometro");
-const offsetRef = ref(db, ".info/serverTimeOffset");
+    let serverOffset = 0;
+    onValue(offsetRef, snap => { serverOffset = snap.val() || 0; });
 
-let serverOffset = 0;
-onValue(offsetRef, snap => {
-  serverOffset = snap.val() || 0;
-});
+    function getServerTime(){ return Date.now() + serverOffset; }
 
-function getServerTime(){
-  return Date.now() + serverOffset;
-}
+    let seconds = 0, running = false, lastUpdate = getServerTime(), limit = 300;
+    const timerEl = document.getElementById("timerDisplay");
 
-/* VARIABLES */
-let seconds = 0;
-let running = false;
-let lastUpdate = getServerTime();
-let limit = 300;
+    function formatTime(sec){
+      if(!isFinite(sec)||sec<0) sec=0;
+      const m = String(Math.floor(sec/60)).padStart(2,'0');
+      const s = String(Math.floor(sec%60)).padStart(2,'0');
+      return m + ":" + s;
+    }
 
-const timerEl = document.getElementById("timerDisplay");
+    onValue(cronoref, snap => {
+      const data = snap.val(); if(!data) return;
+      running = data.running ?? false;
+      limit = (data.limit ?? 5) * 60;
+      if(running && data.lastUpdate){
+        const diff = (getServerTime() - data.lastUpdate)/1000;
+        seconds = Math.max(0,data.seconds + diff);
+      } else { seconds = Math.max(0,data.seconds ?? 0); }
+      lastUpdate = getServerTime();
+      timerEl.dataset.pauseColor = data.pauseColor;
+      timerEl.dataset.runColor = data.runColor;
+      timerEl.dataset.warningColor = data.warningColor;
+      timerEl.dataset.overColor = data.overColor;
+    });
 
-/* FORMATO */
-function formatTime(sec){
-  if(!isFinite(sec) || sec < 0) sec = 0;
-  const m = String(Math.floor(sec/60)).padStart(2,'0');
-  const s = String(Math.floor(sec%60)).padStart(2,'0');
-  return m + ":" + s;
-}
-
-/* ESCUCHAR FIREBASE */
-onValue(cronoref, (snap)=>{
-  const data = snap.val();
-  if(!data) return;
-
-  running = data.running ?? false;
-  limit = (data.limit ?? 5) * 60;
-
-  if(running && data.lastUpdate){
-    const diff = (getServerTime() - data.lastUpdate) / 1000;
-    seconds = Math.max(0, data.seconds + diff);
-  } else {
-    seconds = Math.max(0, data.seconds ?? 0);
-  }
-
-  lastUpdate = getServerTime();
-
-  // guardar colores actuales
-  timerEl.dataset.pauseColor = data.pauseColor;
-  timerEl.dataset.runColor = data.runColor;
-  timerEl.dataset.warningColor = data.warningColor;
-  timerEl.dataset.overColor = data.overColor;
-});
-
-/* LOOP TIEMPO REAL */
-function tick(){
-  if(running){
-    const now = getServerTime();
-    seconds += (now - lastUpdate) / 1000;
-    lastUpdate = now;
-  } else {
-    lastUpdate = getServerTime();
-  }
-
-  timerEl.textContent = formatTime(seconds);
-
-  const warningTime = limit - 60;
-
-  if(!running){
-    timerEl.style.background = timerEl.dataset.pauseColor;
-  } else if(seconds >= limit){
-    timerEl.style.background = timerEl.dataset.overColor;
-  } else if(seconds >= warningTime){
-    timerEl.style.background = timerEl.dataset.warningColor;
-  } else {
-    timerEl.style.background = timerEl.dataset.runColor;
-  }
-
-  requestAnimationFrame(tick);
-}
-
-tick();
-
-/* FULLSCREEN con clic */
-document.addEventListener("click", ()=>{
-  const el = document.documentElement;
-  if(el.requestFullscreen) el.requestFullscreen();
+    function tick(){
+      if(running){ const now = getServerTime(); seconds += (now-lastUpdate)/1000; lastUpdate=now; }
+      else lastUpdate = getServerTime();
+      timerEl.textContent = formatTime(seconds);
+      const warningTime = limit-60;
+      if(!running) timerEl.style.background=timerEl.dataset.pauseColor;
+      else if(seconds>=limit) timerEl.style.background=timerEl.dataset.overColor;
+      else if(seconds>=warningTime) timerEl.style.background=timerEl.dataset.warningColor;
+      else timerEl.style.background=timerEl.dataset.runColor;
+      requestAnimationFrame(tick);
+    }
+    tick();
+  `;
+  projectionWindow.document.body.appendChild(script);
 });
       <\/script>
     </body>
